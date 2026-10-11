@@ -70,3 +70,10 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | Component | Licence |
 |---|---|
 | pgvector | PostgreSQL License |
+
+## memcached
+
+| Component | Licence |
+|---|---|
+| memcached | BSD-3-Clause (Danga Interactive) |
+| libevent, linked statically | BSD-3-Clause, with ISC-licensed parts (arc4random) |

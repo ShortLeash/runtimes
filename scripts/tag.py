@@ -5,7 +5,8 @@ Usage: python3 scripts/tag.py <outputs folder>
 
 A release holds one version of one thing for every platform: php-8.4.26 has
 the CLI and php-fpm for both Mac architectures, ruby-3.4.7 has macOS and
-Windows, pgvector-0.8.7 has every Postgres major on every platform.
+Windows, pgvector-0.8.7 has every Postgres major on every platform, memcached-1.6.45
+has both Mac architectures.
 """
 
 import pathlib
@@ -16,6 +17,7 @@ PATTERNS = [
     re.compile(r"^(?P<tag>php-\d+\.\d+\.\d+)-(?:cli|fpm)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
     re.compile(r"^(?P<tag>ruby-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
     re.compile(r"^(?P<tag>pgvector-\d+\.\d+\.\d+)-pg\d+-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
+    re.compile(r"^(?P<tag>memcached-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
 ]
 
 
@@ -27,6 +29,8 @@ def tag(name: str) -> str:
     'ruby-3.4.7'
     >>> tag("pgvector-0.8.7-pg18-macos-aarch64.tar.gz")
     'pgvector-0.8.7'
+    >>> tag("memcached-1.6.45-macos-x86_64.tar.gz")
+    'memcached-1.6.45'
     >>> tag("notes.txt")
     Traceback (most recent call last):
     ...
