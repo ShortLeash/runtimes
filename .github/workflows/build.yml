@@ -88,6 +88,8 @@ jobs:
         with:
           name: php-${{ matrix.php }}-${{ matrix.runner }}
           path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
 
   ruby:
     needs: plan
@@ -115,6 +117,8 @@ jobs:
         with:
           name: ruby-${{ matrix.ruby }}-${{ matrix.runner }}
           path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
 
   pgvector:
     needs: plan
@@ -146,6 +150,8 @@ jobs:
         with:
           name: pgvector-${{ matrix.postgres }}-${{ matrix.runner }}
           path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
 
   release:
     needs: [plan, php, ruby, pgvector]
