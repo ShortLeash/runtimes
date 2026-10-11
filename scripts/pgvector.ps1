@@ -52,7 +52,11 @@ Copy-Item "$stage/lib/*" "$pgroot/lib/"
 Copy-Item "$stage/extension/*" "$pgroot/share/extension/"
 $data = Join-Path $work 'data'
 & "$pgroot/bin/initdb.exe" -D $data -U root --auth=trust | Out-Null
-& "$pgroot/bin/pg_ctl.exe" -D $data -o "-p 55432" -l "$work/pg.log" -w start | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "initdb failed" }
+# Not piped: the server inherits pg_ctl's output, so a pipe would stay open
+# while it runs and PowerShell would wait on it forever. pg.log has its output.
+& "$pgroot/bin/pg_ctl.exe" -D $data -o "-p 55432" -l "$work/pg.log" -t 60 -w start
+if ($LASTEXITCODE -ne 0) { Get-Content "$work/pg.log"; throw "Postgres didn't start" }
 try {
   & "$pgroot/bin/psql.exe" -h 127.0.0.1 -p 55432 -U root -d postgres -v ON_ERROR_STOP=1 -Atc "CREATE EXTENSION vector; SELECT '[1,2,3]'::vector <-> '[1,2,4]';"
   if ($LASTEXITCODE -ne 0) { throw "pgvector didn't load" }
