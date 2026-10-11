@@ -24,9 +24,10 @@ on:
 permissions:
   contents: read
 
-# One run at a time, so two runs never upload to the same release at once.
+# One run at a time per branch, so two runs never upload to the same release
+# at once (only main releases); a test run on a branch doesn't wait for main.
 concurrency:
-  group: build
+  group: build-${{ github.ref }}
   cancel-in-progress: false
 
 # DevKit supports macOS 13, so every build targets it, whatever macOS the
