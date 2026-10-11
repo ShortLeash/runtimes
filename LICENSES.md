@@ -44,6 +44,7 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | libzip | zip | BSD-3-Clause |
 | ncurses | libedit | X11 (MIT-style) |
 | nghttp2 | swoole | MIT |
+| Oniguruma | mbregex (mb_split, mb_ereg) | BSD-2-Clause |
 | OpenLDAP (libldap) | ldap | OLDAP-2.8 |
 | OpenSSL | openssl, curl, grpc, ldap, pgsql | Apache-2.0 |
 | PostgreSQL (libpq) | pgsql, pdo_pgsql | PostgreSQL License |
