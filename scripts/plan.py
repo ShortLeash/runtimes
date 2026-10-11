@@ -6,8 +6,9 @@ Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published as
 <what> is the workflow input (all, php, ruby or pgvector), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
-architectures yet, and nothing else; it names the exact release (8.4.26)
-where a run by hand names the minor. PLATFORM limits a run by hand to one
+architectures yet, and nothing else. Either way it names each version's
+exact release (8.4.26), looked up once here, so every runner builds the same
+release rather than asking php.net itself and maybe getting another answer. PLATFORM limits a run by hand to one
 platform's runners, so a test on a branch doesn't take every Mac runner.
 """
 
@@ -74,7 +75,7 @@ def main() -> None:
         # The exact release, so the build is the one php.net lists.
         php = [latest[m] for m in stale(have, latest)]
     else:
-        php = minors if what in ("all", "php") else []
+        php = list(latest_releases(minors).values()) if what in ("all", "php") else []
     mac, every = runners(os.environ.get("PLATFORM") or "all")
     if not mac:
         php = []
