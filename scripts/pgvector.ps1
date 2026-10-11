@@ -8,6 +8,8 @@
 # lib/vector.dll and extension/vector.control plus its SQL files.
 param([string]$Pg, [string]$Out)
 $ErrorActionPreference = 'Stop'
+# A program that exits non-zero throws, like a failed cmdlet.
+$PSNativeCommandUseErrorActionPreference = $true
 Set-StrictMode -Version Latest
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -38,7 +40,6 @@ if ((git -C src rev-parse HEAD) -ne $commit) { throw "pgvector v$version isn't c
 Push-Location src
 $env:PGROOT = $pgroot
 nmake /NOLOGO /F Makefile.win
-if ($LASTEXITCODE -ne 0) { throw "nmake failed" }
 Pop-Location
 
 $stage = Join-Path $work 'stage'
@@ -52,12 +53,21 @@ Copy-Item "$stage/lib/*" "$pgroot/lib/"
 Copy-Item "$stage/extension/*" "$pgroot/share/extension/"
 $data = Join-Path $work 'data'
 & "$pgroot/bin/initdb.exe" -D $data -U root --auth=trust | Out-Null
-& "$pgroot/bin/pg_ctl.exe" -D $data -o "-p 55432" -l "$work/pg.log" -w start | Out-Null
+# Started inside the try, so the server is stopped even when the start times
+# out: a server left running keeps the step's output open and the job hangs.
 try {
-  & "$pgroot/bin/psql.exe" -h 127.0.0.1 -p 55432 -U root -d postgres -v ON_ERROR_STOP=1 -Atc "CREATE EXTENSION vector; SELECT '[1,2,3]'::vector <-> '[1,2,4]';"
-  if ($LASTEXITCODE -ne 0) { throw "pgvector didn't load" }
+  # Not piped: the server inherits pg_ctl's output, so a pipe would stay open
+  # while it runs and PowerShell would wait on it forever. pg.log has its output.
+  try {
+    & "$pgroot/bin/pg_ctl.exe" -D $data -o "-p 55432" -l "$work/pg.log" -t 60 -w start
+  } catch {
+    Get-Content "$work/pg.log" -ErrorAction SilentlyContinue
+    throw "Postgres didn't start"
+  }
+  & "$pgroot/bin/psql.exe" -w -h 127.0.0.1 -p 55432 -U root -d postgres -v ON_ERROR_STOP=1 -Atc "CREATE EXTENSION vector; SELECT '[1,2,3]'::vector <-> '[1,2,4]';"
 } finally {
-  & "$pgroot/bin/pg_ctl.exe" -D $data -m fast stop | Out-Null
+  # Fails when the server never started; that's fine here.
+  try { & "$pgroot/bin/pg_ctl.exe" -D $data -m fast stop | Out-Null } catch { }
 }
 
 Compress-Archive -Path "$stage/lib", "$stage/extension" -DestinationPath "$Out/pgvector-$version-pg$major-windows-x86_64.zip" -Force
