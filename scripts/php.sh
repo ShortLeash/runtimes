@@ -7,8 +7,9 @@
 #   scripts/php.sh 8.4.26 out/
 #
 # Writes out/php-<version>-cli-macos-<arch>.tar.gz and
-# out/php-<version>-fpm-macos-<arch>.tar.gz, each holding one program at the top
-# of the archive (the layout DevKit's PHP installer unpacks).
+# out/php-<version>-fpm-macos-<arch>.tar.gz, each holding its program at the top
+# of the archive (the layout DevKit's PHP installer unpacks). The CLI archive
+# also holds pcov.so, for code coverage; DevKit loads it for the CLI only.
 set -euo pipefail
 
 want="$1"
@@ -37,11 +38,15 @@ fi
 # swoole 6.2.3 doesn't compile on macOS (sw_usleep undeclared); stay on 6.2.2
 # until a release does.
 swoole_tag="${SWOOLE_TAG:-v6.2.2}"
-./spc download --with-php="$want" --for-extensions="$exts" --prefer-pre-built --retry=3 \
+# Built as shared extensions (static-php-cli builds pcov no other way).
+shared="pcov"
+./spc download --with-php="$want" --for-extensions="$exts,$shared" --prefer-pre-built --retry=3 \
   -U "swoole:https://github.com/swoole/swoole-src/archive/refs/tags/$swoole_tag.tar.gz"
 patches=()
 [ "$php_minor" -lt 803 ] && patches+=(--with-added-patch="$here/spc-patches/c17.php")
-./spc build "$exts" --build-cli --build-fpm ${patches[@]+"${patches[@]}"}
+# libavif gives gd imageavif() (imagick reads AVIF on its own).
+./spc build "$exts" --build-cli --build-fpm --build-shared="$shared" --with-libs=libavif \
+  ${patches[@]+"${patches[@]}"}
 
 php="buildroot/bin/php"
 fpm="buildroot/bin/php-fpm"
@@ -58,12 +63,20 @@ missing="$("$php" -r '
     if (!$ok) echo "$e ";
   }
 ' "$exts")"
+if ! "$php" -r 'exit(function_exists("imageavif") ? 0 : 1);'; then
+  missing="$missing gd-avif"
+fi
+pcov="buildroot/modules/pcov.so"
+if ! [ -f "$pcov" ] || ! "$php" -n -d extension="$PWD/$pcov" -r 'exit(extension_loaded("pcov") ? 0 : 1);'; then
+  missing="$missing pcov"
+fi
 if [ -n "$missing" ]; then
   echo "PHP $version is missing extensions: $missing" >&2
   exit 1
 fi
+cp "$pcov" "$(dirname "$php")/pcov.so"
 
 check_macos_minimum "$(dirname "$php")"
-tar -C "$(dirname "$php")" -czf "$out/php-${version}-cli-macos-${arch}.tar.gz" php
+tar -C "$(dirname "$php")" -czf "$out/php-${version}-cli-macos-${arch}.tar.gz" php pcov.so
 tar -C "$(dirname "$fpm")" -czf "$out/php-${version}-fpm-macos-${arch}.tar.gz" php-fpm
 echo "Built PHP $version for macos-$arch"

@@ -8,7 +8,7 @@ PHP is under the PHP License 3.01, built with static-php-cli (MIT). Each release
 
 | Extension | Licence |
 |---|---|
-| apcu, event, ev, imagick, redis | PHP License 3.01 |
+| apcu, event, ev, imagick, memcached, pcov, redis | PHP License 3.01 |
 | excimer, grpc, mongodb (with libmongoc and libbson), opentelemetry, swoole | Apache-2.0 |
 | igbinary, msgpack | BSD-3-Clause |
 | sqlsrv, pdo_sqlsrv | MIT |
@@ -21,6 +21,7 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | bzip2 | bz2, imagick | bzip2-1.0.6 |
 | c-ares | grpc, swoole | MIT |
 | curl | curl | curl |
+| FastLZ | memcached | MIT |
 | FreeType | imagick | FreeType License (FTL), chosen from FTL or GPL-2.0 |
 | GMP | gmp, ldap | LGPL-3.0-or-later, chosen from LGPL-3.0 or GPL-2.0 |
 | GNU gettext (libintl) | gettext | LGPL-2.1-or-later |
@@ -28,13 +29,15 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | gRPC core (with abseil, re2, upb) | grpc | Apache-2.0 (abseil Apache-2.0; re2 and upb BSD-3-Clause) |
 | ICU | intl | Unicode-3.0 |
 | ImageMagick | imagick | ImageMagick License |
-| libaom | imagick (AVIF) | BSD-2-Clause, with the AOMedia patent licence |
+| libaom | imagick and gd (AVIF) | BSD-2-Clause, with the AOMedia patent licence |
+| libavif | gd (AVIF) | BSD-2-Clause |
 | libde265 | imagick (HEIF) | LGPL-3.0-or-later |
 | libedit | readline, pgsql | BSD-3-Clause |
 | libevent | event | BSD-3-Clause |
 | libheif | imagick (HEIF) | LGPL-3.0-or-later |
 | libjpeg-turbo | imagick | IJG, BSD-3-Clause and Zlib |
 | libjxl | imagick (JPEG XL) | BSD-3-Clause |
+| libmemcached (with libhashkit) | memcached | BSD-3-Clause |
 | libpng | gd, imagick | libpng-2.0 |
 | libsodium | sodium, ldap | ISC |
 | libtiff | imagick | libtiff |

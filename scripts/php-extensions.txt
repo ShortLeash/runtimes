@@ -11,3 +11,7 @@ swoole,sysvmsg,sysvsem,sysvshm,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib
 # Added by DevKit's builds (not protobuf: static-php-cli refuses it next to
 # grpc, and apps can use the google/protobuf library instead):
 igbinary,msgpack,mongodb,ldap,gettext,excimer,grpc,ev,sqlsrv,pdo_sqlsrv
+# Laravel's memcached cache and session driver:
+memcached
+# pcov is built as pcov.so next to the CLI (static-php-cli only builds it
+# shared); php.sh adds it, so it isn't listed here.
