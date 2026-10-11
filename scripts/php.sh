@@ -51,7 +51,12 @@ missing="$("$php" -r '
   $want = array_filter(explode(",", $argv[1]));
   $have = array_map("strtolower", get_loaded_extensions());
   $alias = ["opcache" => "zend opcache"];
-  foreach ($want as $e) { if (!in_array($alias[$e] ?? $e, $have, true)) echo "$e "; }
+  // Parts of an extension PHP never lists on their own: check a function.
+  $probe = ["mbregex" => "mb_split"];
+  foreach ($want as $e) {
+    $ok = isset($probe[$e]) ? function_exists($probe[$e]) : in_array($alias[$e] ?? $e, $have, true);
+    if (!$ok) echo "$e ";
+  }
 ' "$exts")"
 if [ -n "$missing" ]; then
   echo "PHP $version is missing extensions: $missing" >&2
