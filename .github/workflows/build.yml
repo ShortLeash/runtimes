@@ -1,0 +1,193 @@
+# Builds static PHP with more extensions, relocatable Ruby and pgvector for
+# each Postgres version DevKit installs, and attaches them to this
+# repository's releases with a build attestation. DevKit's own publishing
+# verifies each file against that attestation before it signs and serves it.
+#
+# Every day it builds each PHP patch release php.net has published that isn't
+# released here yet. Run it by hand (Actions › Build › Run workflow) for a new
+# Ruby or pgvector release, or to rebuild everything. Only runs on main
+# attach files to releases; a run on another branch only builds.
+
+name: Build
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      what:
+        description: What to build
+        type: choice
+        options: [all, php, ruby, pgvector]
+        default: all
+
+permissions:
+  contents: read
+
+# One run at a time, so two runs never upload to the same release at once.
+concurrency:
+  group: build
+  cancel-in-progress: false
+
+# DevKit supports macOS 13, so every build targets it, whatever macOS the
+# runner runs. The scripts check each binary they ship against it.
+env:
+  MACOSX_DEPLOYMENT_TARGET: "13.0"
+  # PHP versions to build.
+  PHP_MINORS: "8.2 8.3 8.4 8.5"
+
+# Runners (actions/runner-images): macos-15 is Apple silicon; macos-15-intel
+# is x86_64, the last Intel image GitHub provides (until about August 2027).
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # To keep the schedule on: GitHub turns off scheduled workflows in a
+      # public repository after 60 days without activity.
+      actions: write
+    outputs:
+      php: ${{ steps.plan.outputs.php }}
+      ruby: ${{ steps.plan.outputs.ruby }}
+      pgvector: ${{ steps.plan.outputs.pgvector }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: plan
+        env:
+          WHAT: ${{ inputs.what || 'scheduled' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -m doctest scripts/plan.py scripts/tag.py
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].assets[].name' > published.txt
+          python3 scripts/plan.py "$WHAT" published.txt $PHP_MINORS | tee -a "$GITHUB_OUTPUT"
+      - name: Keep the schedule on
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/build.yml/enable"
+
+  php:
+    needs: plan
+    if: needs.plan.outputs.php != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+        php: ${{ fromJSON(needs.plan.outputs.php) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build PHP ${{ matrix.php }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/php.sh ${{ matrix.php }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.runner }}
+          path: out/*
+
+  ruby:
+    needs: plan
+    if: needs.plan.outputs.ruby == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, windows-latest]
+        ruby: ["3.2", "3.3", "3.4", "4.0"]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build Ruby ${{ matrix.ruby }}
+        if: runner.os == 'macOS'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/ruby.sh ${{ matrix.ruby }} out
+      - name: Repackage RubyInstaller's Ruby ${{ matrix.ruby }}
+        if: runner.os == 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pwsh scripts/ruby-windows.ps1 ${{ matrix.ruby }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ruby-${{ matrix.ruby }}-${{ matrix.runner }}
+          path: out/*
+
+  pgvector:
+    needs: plan
+    if: needs.plan.outputs.pgvector == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, windows-latest]
+        # Every PostgreSQL version DevKit installs. DevKit's publishing checks
+        # that the newest pgvector release has all of them.
+        postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build pgvector for Postgres ${{ matrix.postgres }}
+        if: runner.os == 'macOS'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/pgvector.sh ${{ matrix.postgres }} out
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Build pgvector for Postgres ${{ matrix.postgres }}
+        if: runner.os == 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: pwsh scripts/pgvector.ps1 ${{ matrix.postgres }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pgvector-${{ matrix.postgres }}-${{ matrix.runner }}
+          path: out/*
+
+  release:
+    needs: [plan, php, ruby, pgvector]
+    # Release what built; a build that failed keeps its last release.
+    if: >-
+      ${{ !cancelled()
+        && github.ref == 'refs/heads/main'
+        && (needs.php.result == 'success' || needs.php.result == 'failure'
+          || needs.ruby.result == 'success' || needs.ruby.result == 'failure'
+          || needs.pgvector.result == 'success' || needs.pgvector.result == 'failure') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: outputs
+          merge-multiple: true
+      - id: any
+        run: |
+          set -euo pipefail
+          ls -la outputs || true
+          if [ -n "$(ls -A outputs 2>/dev/null)" ]; then echo "files=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/attest-build-provenance@v4
+        if: steps.any.outputs.files == 'true'
+        with:
+          subject-path: outputs/*
+      - name: Attach to releases
+        if: steps.any.outputs.files == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          python3 scripts/tag.py outputs | while read -r tag file; do
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              gh release create "$tag" --title "$tag" --latest=false \
+                --notes "Built by $run_url. Verify a file with: gh attestation verify <file> --repo $GITHUB_REPOSITORY. Licences: see LICENSES.md."
+            fi
+            # A rebuild of the same version replaces its files.
+            gh release upload "$tag" "$file" --clobber
+          done
