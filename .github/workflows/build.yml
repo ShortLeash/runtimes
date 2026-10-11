@@ -156,13 +156,12 @@ jobs:
 
   release:
     needs: [plan, php, ruby, pgvector]
-    # Release what built; a build that failed keeps its last release.
+    # Release what built; a build that failed or timed out keeps its last
+    # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result == 'success' || needs.php.result == 'failure'
-          || needs.ruby.result == 'success' || needs.ruby.result == 'failure'
-          || needs.pgvector.result == 'success' || needs.pgvector.result == 'failure') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

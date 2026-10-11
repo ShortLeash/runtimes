@@ -1,21 +1,40 @@
 #!/usr/bin/env python3
 """Decides what a run of the Build workflow builds, as GitHub step outputs.
 
-Usage: python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
+Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
 
 <what> is the workflow input (all, php, ruby or pgvector), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else; it names the exact release (8.4.26)
-where a run by hand names the minor.
+where a run by hand names the minor. PLATFORM limits a run by hand to one
+platform's runners, so a test on a branch doesn't take every Mac runner.
 """
 
 import json
+import os
 import pathlib
 import sys
 import urllib.request
 
 ARCHES = ("aarch64", "x86_64")
+MAC_RUNNERS = ["macos-15", "macos-15-intel"]
+WINDOWS_RUNNERS = ["windows-latest"]
+
+
+def runners(platform: str) -> tuple:
+    """The Mac runners (PHP) and all runners (Ruby, pgvector) for a platform.
+
+    >>> runners("all")
+    (['macos-15', 'macos-15-intel'], ['macos-15', 'macos-15-intel', 'windows-latest'])
+    >>> runners("windows")
+    ([], ['windows-latest'])
+    >>> runners("macos")[1]
+    ['macos-15', 'macos-15-intel']
+    """
+    mac = MAC_RUNNERS if platform in ("all", "macos") else []
+    windows = WINDOWS_RUNNERS if platform in ("all", "windows") else []
+    return mac, mac + windows
 
 
 def php_assets(version: str) -> list:
@@ -56,9 +75,14 @@ def main() -> None:
         php = [latest[m] for m in stale(have, latest)]
     else:
         php = minors if what in ("all", "php") else []
+    mac, every = runners(os.environ.get("PLATFORM") or "all")
+    if not mac:
+        php = []
     print(f"php={json.dumps(php)}")
     print(f"ruby={str(what in ('all', 'ruby')).lower()}")
     print(f"pgvector={str(what in ('all', 'pgvector')).lower()}")
+    print(f"mac_runners={json.dumps(mac)}")
+    print(f"runners={json.dumps(every)}")
 
 
 if __name__ == "__main__":
