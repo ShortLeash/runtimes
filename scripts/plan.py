@@ -3,7 +3,7 @@
 
 Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
 
-<what> is the workflow input (all, php, ruby or pgvector), or "scheduled"
+<what> is the workflow input (all, php, ruby, pgvector or memcached), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
@@ -82,6 +82,7 @@ def main() -> None:
     print(f"php={json.dumps(php)}")
     print(f"ruby={str(what in ('all', 'ruby')).lower()}")
     print(f"pgvector={str(what in ('all', 'pgvector')).lower()}")
+    print(f"memcached={str(what in ('all', 'memcached') and bool(mac)).lower()}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 

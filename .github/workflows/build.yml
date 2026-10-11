@@ -1,11 +1,11 @@
-# Builds static PHP with more extensions, relocatable Ruby and pgvector for
-# each Postgres version DevKit installs, and attaches them to this
+# Builds static PHP with more extensions, relocatable Ruby, pgvector for
+# each Postgres version DevKit installs, and memcached for macOS, and attaches them to this
 # repository's releases with a build attestation. DevKit's own publishing
 # verifies each file against that attestation before it signs and serves it.
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
-# Ruby or pgvector release, or to rebuild everything. Only runs on main
+# Ruby, pgvector or memcached release, or to rebuild everything. Only runs on main
 # attach files to releases; a run on another branch only builds.
 
 name: Build
@@ -18,7 +18,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector]
+        options: [all, php, ruby, pgvector, memcached]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -57,6 +57,7 @@ jobs:
       php: ${{ steps.plan.outputs.php }}
       ruby: ${{ steps.plan.outputs.ruby }}
       pgvector: ${{ steps.plan.outputs.pgvector }}
+      memcached: ${{ steps.plan.outputs.memcached }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -162,14 +163,36 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  memcached:
+    needs: plan
+    if: needs.plan.outputs.memcached == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build memcached
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/memcached.sh out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: memcached-${{ matrix.runner }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector]
+    needs: [plan, php, ruby, pgvector, memcached]
     # Release what built; a build that failed or timed out keeps its last
     # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
