@@ -43,10 +43,15 @@ def libwebrtc_targets(what: str, platform: str) -> list:
     takes an hour or two. Both Mac architectures build on the Apple silicon
     runner and both Windows ones on the x64 runner (cross-compiling).
 
+    Windows builds use Visual Studio 2022 (windows-2022), not the newest:
+    a static library built with a newer MSVC calls standard library helpers
+    an older toolset's runtime doesn't have, while one built with 2022 links
+    with 2022 and everything after it.
+
     >>> [t["arch"] for t in libwebrtc_targets("libwebrtc", "all")]
     ['aarch64', 'x86_64', 'x86_64', 'aarch64']
     >>> libwebrtc_targets("libwebrtc", "windows")[0]
-    {'runner': 'windows-latest', 'os': 'windows', 'arch': 'x86_64'}
+    {'runner': 'windows-2022', 'os': 'windows', 'arch': 'x86_64'}
     >>> libwebrtc_targets("all", "all")
     []
     """
@@ -56,7 +61,7 @@ def libwebrtc_targets(what: str, platform: str) -> list:
     if platform in ("all", "macos"):
         out += [{"runner": "macos-15", "os": "macos", "arch": a} for a in ("aarch64", "x86_64")]
     if platform in ("all", "windows"):
-        out += [{"runner": "windows-latest", "os": "windows", "arch": a} for a in ("x86_64", "aarch64")]
+        out += [{"runner": "windows-2022", "os": "windows", "arch": a} for a in ("x86_64", "aarch64")]
     return out
 
 
