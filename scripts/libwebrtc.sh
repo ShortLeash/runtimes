@@ -58,6 +58,11 @@ if [ ! -e src/.git ] || [ "$(git -C src rev-parse HEAD)" != "$WEBRTC_COMMIT" ]; 
   gclient sync -D --no-history
 fi
 
+# Build stamps come from build/util/LASTCHANGE.committime, which
+# lastchange.py leaves at 0 for a commit without a Gerrit Change-Id. Use the
+# commit's own date, so the build is the same wherever it runs.
+git -C src log -1 --format=%ct HEAD | tr -d '\n' > src/build/util/LASTCHANGE.committime
+
 . "$recipe/apply_patch.sh"
 cd src
 for p in add_licenses fix_license_json_parsing ssl_verify_callback_with_native_handle add_deps external_audio_source; do

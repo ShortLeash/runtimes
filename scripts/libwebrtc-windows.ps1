@@ -70,6 +70,13 @@ solutions = [
 $head = if (Test-Path 'src\.git') { (& git -C src rev-parse HEAD) } else { '' }
 if ($head -ne $env_['WEBRTC_COMMIT']) { Run gclient.bat @('sync', '-D', '--no-history') }
 
+# Chromium stamps Windows binaries with the commit's date from
+# build/util/LASTCHANGE.committime. lastchange.py looks for a Gerrit
+# Change-Id, which the webrtc-sdk commit doesn't have, and writes 0: lld-link
+# then refuses the negative timestamp. Use the commit's own date.
+$committime = (& git -C src log -1 --format=%ct HEAD).Trim()
+Set-Content -Path 'src\build\util\LASTCHANGE.committime' -Value $committime -NoNewline -Encoding ascii
+
 # The recipe's Windows patches. A patch that's already applied is skipped; one
 # that neither applies nor is applied stops the build.
 Push-Location src
