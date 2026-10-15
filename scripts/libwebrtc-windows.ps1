@@ -85,7 +85,11 @@ Pop-Location
 # The recipe's Windows arguments, with H.264 off and Chromium branding.
 $build = "src\out-$cpu"
 $gnArgs = "is_debug=false is_clang=true target_cpu=`"$cpu`" use_custom_libcxx=false rtc_libvpx_build_vp9=true enable_libaom=true rtc_include_tests=false rtc_build_examples=false rtc_build_tools=false is_component_build=false rtc_enable_protobuf=false rtc_use_h264=false proprietary_codecs=false ffmpeg_branding=`"Chromium`" symbol_level=0 enable_iterator_debugging=false"
-Run gn.bat @('gen', $build, '--root=src', "--args=$gnArgs")
+# Written to args.gn, not passed as --args: gn.bat goes through cmd, which
+# strips the quotes gn needs around strings.
+New-Item -ItemType Directory -Force $build | Out-Null
+Set-Content -Path (Join-Path $build 'args.gn') -Value ($gnArgs -replace ' (?=[a-z_]+=)', "`n") -Encoding ascii
+Run gn.bat @('gen', $build, '--root=src')
 Run ninja.exe @('-C', $build, ':default')
 
 $name = "libwebrtc-$version-windows-$Arch"
