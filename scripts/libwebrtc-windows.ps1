@@ -88,7 +88,7 @@ $gnArgs = "is_debug=false is_clang=true target_cpu=`"$cpu`" use_custom_libcxx=fa
 # Written to args.gn, not passed as --args: gn.bat goes through cmd, which
 # strips the quotes gn needs around strings.
 New-Item -ItemType Directory -Force $build | Out-Null
-Set-Content -Path (Join-Path $build 'args.gn') -Value ($gnArgs -replace ' (?=[a-z_]+=)', "`n") -Encoding ascii
+Set-Content -Path (Join-Path $build 'args.gn') -Value (($gnArgs -split ' ') -replace '=', ' = ') -Encoding ascii
 Run gn.bat @('gen', $build, '--root=src')
 Run ninja.exe @('-C', $build, ':default')
 
@@ -109,7 +109,13 @@ Get-ChildItem -Recurse -File -Include *.h, *.inc | ForEach-Object {
 Pop-Location
 
 # What DevKit relies on: no FFmpeg or OpenH264 in the library or its licences.
-$nm = 'src\third_party\llvm-build\Release+Asserts\bin\llvm-nm.exe'
+$nm = @(
+  'src\third_party\llvm-build\Release+Asserts\bin\llvm-nm.exe',
+  (Join-Path $env:ProgramFiles 'Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\llvm-nm.exe'),
+  (Join-Path $env:ProgramFiles 'Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\bin\llvm-nm.exe')
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $nm) { $nm = (Get-Command llvm-nm.exe -ErrorAction SilentlyContinue).Source }
+if (-not $nm) { throw 'No llvm-nm to check webrtc.lib for FFmpeg and OpenH264' }
 $bad = & $nm -g --defined-only (Join-Path $pkg 'lib\webrtc.lib') 2>$null | Select-String -Pattern ' (avcodec_|av_malloc|ff_h264|WelsCreateSVCEncoder)' | Select-Object -First 1
 if ($bad) { throw "webrtc.lib contains FFmpeg or OpenH264 code: $bad" }
 if (Select-String -Path (Join-Path $pkg 'LICENSE.md') -Pattern '^# (ffmpeg|openh264)$' -Quiet) { throw 'LICENSE.md lists FFmpeg or OpenH264' }
