@@ -14,7 +14,13 @@ $ProgressPreference = 'SilentlyContinue'
 
 $cpu = switch ($Arch) { 'x86_64' { 'x64' } 'aarch64' { 'arm64' } default { throw 'Arch must be x86_64 or aarch64' } }
 $env_ = @{}
-Get-Content (Join-Path $PSScriptRoot 'libwebrtc.env') | Where-Object { $_ -match '^([A-Z_]+)=(.*)$' } | ForEach-Object { $env_[$Matches[1]] = $Matches[2].Trim() } # the checkout may end lines with CRLF
+foreach ($line in Get-Content (Join-Path $PSScriptRoot 'libwebrtc.env')) {
+  # Keys have digits (WEBRTC_SYS_SHA256); the checkout may end lines with CRLF.
+  if ($line -match '^([A-Z0-9_]+)=(.*)$') { $env_[$Matches[1]] = $Matches[2].Trim() }
+}
+foreach ($k in 'WEBRTC_SYS_VERSION', 'WEBRTC_SYS_SHA256', 'WEBRTC_COMMIT', 'DEPOT_TOOLS_COMMIT') {
+  if (-not $env_[$k]) { throw "libwebrtc.env has no $k" }
+}
 $version = $env_['WEBRTC_SYS_VERSION']
 New-Item -ItemType Directory -Force $Out | Out-Null
 $Out = (Resolve-Path $Out).Path
@@ -47,7 +53,8 @@ $env:PATH = (Join-Path $work 'depot_tools') + ';' + $env:PATH
 $env:DEPOT_TOOLS_UPDATE = '0'
 $env:DEPOT_TOOLS_WIN_TOOLCHAIN = '0'
 $env:GYP_MSVS_VERSION = '2022'
-if (-not (Test-Path 'depot_tools\python3_bin_reldir.txt')) { & cmd /c 'depot_tools\bootstrap\win_tools.bat' | Out-Null }
+if (-not (Test-Path 'depot_tools\python3_bin_reldir.txt')) { Run cmd @('/c', (Join-Path $work 'depot_tools\bootstrap\win_tools.bat')) }
+if (-not (Test-Path 'depot_tools\python3_bin_reldir.txt')) { throw "depot_tools didn't bootstrap" }
 
 @"
 solutions = [

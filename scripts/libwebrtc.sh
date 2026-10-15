@@ -32,14 +32,15 @@ tar -xzf "$crate" "webrtc-sys-$WEBRTC_SYS_VERSION/libwebrtc"
 recipe="$work/webrtc-sys-$WEBRTC_SYS_VERSION/libwebrtc"
 
 # depot_tools at the pinned commit. With updates off it never bootstraps its
-# own Python, which gn needs, so bootstrap once by hand.
+# own Python, which gn needs, so bootstrap once by hand, by absolute path:
+# the CIPD client it fetches finds its pinned digests relative to $0.
 if [ ! -d depot_tools/.git ]; then
   git init -q depot_tools
   git -C depot_tools fetch -q --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$DEPOT_TOOLS_COMMIT"
   git -C depot_tools checkout -q FETCH_HEAD
 fi
 export PATH="$work/depot_tools:$PATH" DEPOT_TOOLS_UPDATE=0
-[ -e depot_tools/python3_bin_reldir.txt ] || depot_tools/ensure_bootstrap >/dev/null 2>&1 || true
+[ -e depot_tools/python3_bin_reldir.txt ] || "$work/depot_tools/ensure_bootstrap" || true
 [ -e depot_tools/python3_bin_reldir.txt ] || { echo "depot_tools didn't bootstrap" >&2; exit 1; }
 
 cat > .gclient <<GCLIENT
