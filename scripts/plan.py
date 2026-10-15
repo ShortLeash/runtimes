@@ -3,7 +3,7 @@
 
 Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
 
-<what> is the workflow input (all, php, ruby, pgvector or memcached), or "scheduled"
+<what> is the workflow input (all, php, ruby, pgvector, memcached or libwebrtc), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
@@ -36,6 +36,33 @@ def runners(platform: str) -> tuple:
     mac = MAC_RUNNERS if platform in ("all", "macos") else []
     windows = WINDOWS_RUNNERS if platform in ("all", "windows") else []
     return mac, mac + windows
+
+
+def libwebrtc_targets(what: str, platform: str) -> list:
+    """The libwebrtc builds a run makes: only when asked for by name, since each
+    takes an hour or two. Both Mac architectures build on the Apple silicon
+    runner and both Windows ones on the x64 runner (cross-compiling).
+
+    Windows builds use Visual Studio 2022 (windows-2022), not the newest:
+    a static library built with a newer MSVC calls standard library helpers
+    an older toolset's runtime doesn't have, while one built with 2022 links
+    with 2022 and everything after it.
+
+    >>> [t["arch"] for t in libwebrtc_targets("libwebrtc", "all")]
+    ['aarch64', 'x86_64', 'x86_64', 'aarch64']
+    >>> libwebrtc_targets("libwebrtc", "windows")[0]
+    {'runner': 'windows-2022', 'os': 'windows', 'arch': 'x86_64'}
+    >>> libwebrtc_targets("all", "all")
+    []
+    """
+    if what != "libwebrtc":
+        return []
+    out = []
+    if platform in ("all", "macos"):
+        out += [{"runner": "macos-15", "os": "macos", "arch": a} for a in ("aarch64", "x86_64")]
+    if platform in ("all", "windows"):
+        out += [{"runner": "windows-2022", "os": "windows", "arch": a} for a in ("x86_64", "aarch64")]
+    return out
 
 
 def php_assets(version: str) -> list:
@@ -83,6 +110,7 @@ def main() -> None:
     print(f"ruby={str(what in ('all', 'ruby')).lower()}")
     print(f"pgvector={str(what in ('all', 'pgvector')).lower()}")
     print(f"memcached={str(what in ('all', 'memcached') and bool(mac)).lower()}")
+    print(f"libwebrtc={json.dumps(libwebrtc_targets(what, os.environ.get('PLATFORM') or 'all'))}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 

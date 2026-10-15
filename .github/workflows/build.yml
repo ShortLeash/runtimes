@@ -1,11 +1,13 @@
 # Builds static PHP with more extensions, relocatable Ruby, pgvector for
-# each Postgres version DevKit installs, and memcached for macOS, and attaches them to this
+# each Postgres version DevKit installs, memcached for macOS, and libwebrtc
+# (without H.264) for DevKit, and attaches them to this
 # repository's releases with a build attestation. DevKit's own publishing
 # verifies each file against that attestation before it signs and serves it.
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
-# Ruby, pgvector or memcached release, or to rebuild everything. Only runs on main
+# Ruby, pgvector or memcached release, or to rebuild everything. libwebrtc
+# builds only when asked for by name (what: libwebrtc); it takes an hour or two. Only runs on main
 # attach files to releases; a run on another branch only builds.
 
 name: Build
@@ -18,7 +20,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector, memcached]
+        options: [all, php, ruby, pgvector, memcached, libwebrtc]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -58,6 +60,7 @@ jobs:
       ruby: ${{ steps.plan.outputs.ruby }}
       pgvector: ${{ steps.plan.outputs.pgvector }}
       memcached: ${{ steps.plan.outputs.memcached }}
+      libwebrtc: ${{ steps.plan.outputs.libwebrtc }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -185,14 +188,63 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  libwebrtc:
+    needs: plan
+    if: needs.plan.outputs.libwebrtc != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.libwebrtc) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v7
+      # A WebRTC checkout and build need about 30 GB; the runner image's
+      # Android SDK, spare Xcodes and simulators make room.
+      - name: Make room
+        if: matrix.os == 'macos'
+        run: |
+          set -euo pipefail
+          df -h /
+          sudo rm -rf "$HOME/Library/Android" /usr/local/share/dotnet "$HOME/.dotnet" "$HOME/.ghcup" || true
+          current="$(cd "$(xcode-select -p)/../.." && pwd -P)"
+          for x in /Applications/Xcode*.app; do
+            [ "$(cd "$x" && pwd -P)" = "$current" ] || sudo rm -rf "$x"
+          done
+          xcrun simctl delete all >/dev/null 2>&1 || true
+          sudo rm -rf /Library/Developer/CoreSimulator/Images/* "$HOME/Library/Developer/CoreSimulator/Caches" || true
+          df -h /
+      - name: Build libwebrtc ${{ matrix.arch }}
+        if: matrix.os == 'macos'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/libwebrtc.sh ${{ matrix.arch }} out
+      # Chromium's checkout has paths longer than Windows' default limit.
+      - name: Allow long paths
+        if: matrix.os == 'windows'
+        run: git config --system core.longpaths true
+      - name: Build libwebrtc ${{ matrix.arch }}
+        if: matrix.os == 'windows'
+        shell: pwsh
+        env:
+          # The runner's D: drive has the room; C: doesn't.
+          LIBWEBRTC_WORK: ${{ runner.temp }}\libwebrtc
+        run: ./scripts/libwebrtc-windows.ps1 ${{ matrix.arch }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: libwebrtc-${{ matrix.os }}-${{ matrix.arch }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc]
     # Release what built; a build that failed or timed out keeps its last
     # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
