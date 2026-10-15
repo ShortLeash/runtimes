@@ -118,6 +118,8 @@ Get-ChildItem -Recurse -File -Include *.h, *.inc | ForEach-Object {
 }
 Pop-Location
 
+if (-not (Test-Path (Join-Path $pkg 'include\api\rtc_error.h'))) { throw "the headers weren't copied" }
+
 # What DevKit relies on: no FFmpeg or OpenH264 in the library or its licences.
 $nm = @(
   'src\third_party\llvm-build\Release+Asserts\bin\llvm-nm.exe',

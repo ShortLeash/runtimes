@@ -120,7 +120,9 @@ find "$build/obj" -name '*.o' -not -path '*/third_party/nasm/*' -print0 | xargs 
 vpython3 src/tools_webrtc/libs/generate_licenses.py --target :webrtc "$build" "$build"
 cp "$build/obj/webrtc.ninja" "$build/args.gn" "$build/LICENSE.md" "$pkg/"
 cp "$build/obj/modules/desktop_capture/desktop_capture.ninja" "$pkg/"
-(cd src && find . \( -name '*.h' -o -name '*.inc' \) -print | cpio -pd "$pkg/include" 2>/dev/null)
+mkdir -p "$pkg/include"
+(cd src && find . \( -name '*.h' -o -name '*.inc' \) -print0 | rsync -a --from0 --files-from=- ./ "$pkg/include/")
+[ -f "$pkg/include/api/rtc_error.h" ] || { echo "the headers weren't copied" >&2; exit 1; }
 
 # What DevKit relies on: no FFmpeg or OpenH264 in the library or its licences.
 nm_bin="src/third_party/llvm-build/Release+Asserts/bin/llvm-nm"
