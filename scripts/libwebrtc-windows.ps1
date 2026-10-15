@@ -14,7 +14,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $cpu = switch ($Arch) { 'x86_64' { 'x64' } 'aarch64' { 'arm64' } default { throw 'Arch must be x86_64 or aarch64' } }
 $env_ = @{}
-Get-Content (Join-Path $PSScriptRoot 'libwebrtc.env') | Where-Object { $_ -match '^([A-Z_]+)=(.*)$' } | ForEach-Object { $env_[$Matches[1]] = $Matches[2] }
+Get-Content (Join-Path $PSScriptRoot 'libwebrtc.env') | Where-Object { $_ -match '^([A-Z_]+)=(.*)$' } | ForEach-Object { $env_[$Matches[1]] = $Matches[2].Trim() } # the checkout may end lines with CRLF
 $version = $env_['WEBRTC_SYS_VERSION']
 New-Item -ItemType Directory -Force $Out | Out-Null
 $Out = (Resolve-Path $Out).Path
