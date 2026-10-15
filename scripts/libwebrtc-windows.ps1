@@ -80,7 +80,9 @@ Set-Content -Path 'src\build\util\LASTCHANGE.committime' -Value $committime -NoN
 # The recipe's Windows patches. A patch that's already applied is skipped; one
 # that neither applies nor is applied stops the build.
 Push-Location src
-foreach ($p in 'add_licenses', 'add_deps', 'ssl_verify_callback_with_native_handle', 'external_audio_source') {
+# Plus fix_license_json_parsing from the macOS recipe: gn's warnings would
+# otherwise break the licence list.
+foreach ($p in 'add_licenses', 'fix_license_json_parsing', 'add_deps', 'ssl_verify_callback_with_native_handle', 'external_audio_source') {
   $patch = Join-Path $recipe "patches\$p.patch"
   & git apply --reverse --check --ignore-space-change --ignore-whitespace $patch 2>$null
   if ($LASTEXITCODE -eq 0) { Write-Output "Patch already applied: $p"; continue }
@@ -89,9 +91,10 @@ foreach ($p in 'add_licenses', 'add_deps', 'ssl_verify_callback_with_native_hand
 Copy-Item .vpython3 ..\ -Force
 Pop-Location
 
-# The recipe's Windows arguments, with H.264 off and Chromium branding.
+# The recipe's Windows arguments, with H.264 off. (ffmpeg_branding has no
+# effect on Windows, and gn's warning about it broke the licence list.)
 $build = "src\out-$cpu"
-$gnArgs = "is_debug=false is_clang=true target_cpu=`"$cpu`" use_custom_libcxx=false rtc_libvpx_build_vp9=true enable_libaom=true rtc_include_tests=false rtc_build_examples=false rtc_build_tools=false is_component_build=false rtc_enable_protobuf=false rtc_use_h264=false proprietary_codecs=false ffmpeg_branding=`"Chromium`" symbol_level=0 enable_iterator_debugging=false"
+$gnArgs = "is_debug=false is_clang=true target_cpu=`"$cpu`" use_custom_libcxx=false rtc_libvpx_build_vp9=true enable_libaom=true rtc_include_tests=false rtc_build_examples=false rtc_build_tools=false is_component_build=false rtc_enable_protobuf=false rtc_use_h264=false proprietary_codecs=false symbol_level=0 enable_iterator_debugging=false"
 # Written to args.gn, not passed as --args: gn.bat goes through cmd, which
 # strips the quotes gn needs around strings.
 New-Item -ItemType Directory -Force $build | Out-Null
