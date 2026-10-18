@@ -50,7 +50,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: scripts/model-updates.sh updates | tee -a "$GITHUB_OUTPUT"
+        run: |
+          set -euo pipefail
+          scripts/model-updates.sh updates | tee "$RUNNER_TEMP/updates.log"
+          grep '^changes=' "$RUNNER_TEMP/updates.log" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
