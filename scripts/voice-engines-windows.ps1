@@ -53,6 +53,8 @@ function Fetch-HF([string]$repoId, [string]$commit, [string]$file, [string]$sha,
 function Fetch-Commit([string]$url, [string]$commit, [string]$dir) {
   if (-not (Test-Path "$dir\.git")) {
     Run git @('init', '-q', $dir)
+    # Byte for byte: the runner's git would otherwise convert line endings.
+    Run git @('-C', $dir, 'config', 'core.autocrlf', 'false')
     Run git @('-C', $dir, 'fetch', '-q', '--depth', '1', $url, $commit)
     Run git @('-C', $dir, '-c', 'advice.detachedHead=false', 'checkout', '-q', 'FETCH_HEAD')
   }
