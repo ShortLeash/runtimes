@@ -1,0 +1,86 @@
+# Once a week, looks for newer versions of the catalogue's models on Hugging
+# Face and for new llama.cpp security advisories, tests whatever changed with
+# the same checks as a release, and opens (or updates) one pull request with
+# the new pins. Merging it runs the Models workflow, which releases them.
+#
+# Kept apart from models.yml so the permission to open pull requests never
+# sits beside the release's attestation permissions. Needs "Allow GitHub
+# Actions to create and approve pull requests" turned on in the repository's
+# Actions settings. HF_TOKEN, if set, is a read-only Hugging Face token: the
+# job only reads from the Hub, and shared runner addresses share the
+# anonymous rate limit.
+
+name: Model updates
+
+on:
+  schedule:
+    - cron: "41 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-updates
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: write
+      pull-requests: write
+      # To keep the schedule on: GitHub turns off scheduled workflows in a
+      # public repository after 60 days without activity.
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Make room
+        run: |
+          set -euo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL || true
+          if [ -d /mnt ] && [ "$(df --output=avail /mnt | tail -1)" -gt "$(df --output=avail "$RUNNER_TEMP" | tail -1)" ]; then
+            sudo mkdir -p /mnt/models && sudo chown "$USER" /mnt/models
+            echo "MODELS_WORK=/mnt/models" >> "$GITHUB_ENV"
+          else
+            echo "MODELS_WORK=$RUNNER_TEMP/models" >> "$GITHUB_ENV"
+          fi
+      - id: check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          scripts/model-updates.sh updates | tee "$RUNNER_TEMP/updates.log"
+          grep '^changes=' "$RUNNER_TEMP/updates.log" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: model-updates
+          path: updates/
+          retention-days: 7
+      - name: Open or update the pull request
+        if: steps.check.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch=model-updates
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git add models/catalogue.json models/llama-advisories.json
+          git commit -q -m "chore(models): newer pinned models and llama.cpp advisories"
+          git push -f origin "$branch"
+          title="Model updates $(date -u +%Y-%m-%d)"
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')" ]; then
+            gh pr edit "$branch" --title "$title" --body-file updates/pr.md
+          else
+            gh pr create --head "$branch" --base main --title "$title" --body-file updates/pr.md
+          fi
+      - name: Keep the schedule on
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/model-updates.yml/enable"

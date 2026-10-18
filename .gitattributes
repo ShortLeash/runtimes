@@ -1,0 +1,4 @@
+# Byte-exact on every checkout: the templates and clips are pinned by SHA-256.
+models/templates/*.jinja -text
+models/fixtures/*.wav binary
+models/licenses/*.txt -text

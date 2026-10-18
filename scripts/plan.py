@@ -3,7 +3,8 @@
 
 Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
 
-<what> is the workflow input (all, php, ruby, pgvector, memcached or libwebrtc), or "scheduled"
+<what> is the workflow input (all, php, ruby, pgvector, memcached, libwebrtc or
+voice-engines), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
@@ -65,6 +66,31 @@ def libwebrtc_targets(what: str, platform: str) -> list:
     return out
 
 
+def voice_engines_targets(what: str, platform: str) -> list:
+    """The voice-engines builds a run makes: only when asked for by name, since
+    the engines are pinned and change only with DevKit's crates. Each Mac
+    architecture builds on its own runner, so the smoke tests run natively.
+    Windows uses Visual Studio 2022, whose MSVC version the build records:
+    DevKit installs at least that Visual C++ Redistributable.
+
+    >>> [(t["runner"], t["arch"]) for t in voice_engines_targets("voice-engines", "all")]
+    [('macos-15', 'aarch64'), ('macos-15-intel', 'x86_64'), ('windows-2022', 'x86_64')]
+    >>> voice_engines_targets("voice-engines", "windows")[0]["os"]
+    'windows'
+    >>> voice_engines_targets("all", "all")
+    []
+    """
+    if what != "voice-engines":
+        return []
+    out = []
+    if platform in ("all", "macos"):
+        out += [{"runner": "macos-15", "os": "macos", "arch": "aarch64"},
+                {"runner": "macos-15-intel", "os": "macos", "arch": "x86_64"}]
+    if platform in ("all", "windows"):
+        out += [{"runner": "windows-2022", "os": "windows", "arch": "x86_64"}]
+    return out
+
+
 def php_assets(version: str) -> list:
     """The files a complete PHP release has.
 
@@ -111,6 +137,7 @@ def main() -> None:
     print(f"pgvector={str(what in ('all', 'pgvector')).lower()}")
     print(f"memcached={str(what in ('all', 'memcached') and bool(mac)).lower()}")
     print(f"libwebrtc={json.dumps(libwebrtc_targets(what, os.environ.get('PLATFORM') or 'all'))}")
+    print(f"voice_engines={json.dumps(voice_engines_targets(what, os.environ.get('PLATFORM') or 'all'))}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 

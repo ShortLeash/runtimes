@@ -64,3 +64,22 @@ check_macos_minimum() {
     return 1
   fi
 }
+
+# fetch_hf REPO COMMIT FILE SHA256 DEST: a file from a Hugging Face repo at
+# a full commit, checked against its SHA-256 (for large files, the LFS oid
+# the Hub lists). The Hub redirects to its CDN; any https host is followed.
+fetch_hf() {
+  local repo="$1" commit="$2" file="$3" sha="$4" dest="$5"
+  if [ -f "$dest" ] && [ "$(shasum -a 256 "$dest" | cut -d' ' -f1)" = "$sha" ]; then
+    return 0
+  fi
+  curl -fsSL --proto-redir =https --retry 5 --retry-delay 10 -o "$dest" \
+    ${HF_TOKEN:+-H "Authorization: Bearer $HF_TOKEN"} \
+    "https://huggingface.co/$repo/resolve/$commit/$file"
+  local got
+  got="$(shasum -a 256 "$dest" | cut -d' ' -f1)"
+  if [ "$got" != "$sha" ]; then
+    echo "$repo@$commit/$file: SHA-256 $got doesn't match $sha" >&2
+    return 1
+  fi
+}

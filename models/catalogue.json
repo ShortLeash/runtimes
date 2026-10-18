@@ -1,0 +1,1053 @@
+{
+  "schema": 1,
+  "speech": [
+    {
+      "id": "parakeet-ultra",
+      "kind": "speech",
+      "name": "Parakeet Ultra",
+      "family": "parakeet",
+      "languages": [
+        "en",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "ru",
+        "uk",
+        "hr",
+        "sl",
+        "lv",
+        "lt",
+        "et",
+        "fi",
+        "sv",
+        "da",
+        "nl",
+        "pl",
+        "cs",
+        "sk",
+        "hu",
+        "ro",
+        "bg",
+        "el",
+        "mt"
+      ],
+      "license": "cc-by-4.0",
+      "creators": [
+        "Moondream (moondream/parakeet-ultra), post-trained from NVIDIA's parakeet-tdt-0.6b-v3"
+      ],
+      "source": {
+        "repo": "moondream/parakeet-ultra",
+        "commit": "73175eb7aeb0d82f1e2a6b53b3aabc10a90bcd0b",
+        "include": [
+          "config.json",
+          "model.safetensors",
+          "tokenizer.json"
+        ],
+        "files": [
+          {
+            "path": "config.json",
+            "size": 1153,
+            "sha256": "e747b85e1bdfd300c8b8ac63bac8dd5221f8fe9bc275b48d06c735fcd6971b6e",
+            "blob": "969c65410a736e4a3922f968b3481b2418aba786"
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1255353386,
+            "sha256": "c9608f36d0ab956c14bfcc525479b0746b3b42a56f6949ec85c14eb7466717dc",
+            "blob": "cdb2b9d5aaee9e4559e9cccc38c098bda565e879"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 1159960,
+            "sha256": "bd321b096832a3f270bd3b2a88823957920f1a5c5ada71114a26ea729d0cbe91",
+            "blob": "a10a554cf61e38108756650018d5781ae9675c1d"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-parakeet.py",
+        "env": "parakeet",
+        "slug": "parakeet-ultra",
+        "input": "dir"
+      },
+      "quants": [
+        "Q8_0",
+        "Q5_K_M"
+      ],
+      "use": "Default for dictation and meetings; Q5_K_M on 8 GB Macs",
+      "smoke": [
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.15
+        }
+      ]
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "kind": "speech",
+      "name": "Parakeet TDT 0.6B v3",
+      "family": "parakeet",
+      "languages": [
+        "bg",
+        "hr",
+        "cs",
+        "da",
+        "nl",
+        "en",
+        "et",
+        "fi",
+        "fr",
+        "de",
+        "el",
+        "hu",
+        "it",
+        "lv",
+        "lt",
+        "mt",
+        "pl",
+        "pt",
+        "ro",
+        "ru",
+        "sk",
+        "sl",
+        "es",
+        "sv",
+        "uk"
+      ],
+      "license": "cc-by-4.0",
+      "creators": [
+        "NVIDIA (nvidia/parakeet-tdt-0.6b-v3)"
+      ],
+      "source": {
+        "repo": "nvidia/parakeet-tdt-0.6b-v3",
+        "commit": "6d590f77001d318fb17a0b5bf7ee329a91b52598",
+        "include": [
+          "*.nemo"
+        ],
+        "files": [
+          {
+            "path": "parakeet-tdt-0.6b-v3.nemo",
+            "size": 2509332480,
+            "sha256": "3cbdc85877e668ca7b82d0d56770eb1fac76691f55d6b97545e8d61ca588d10d",
+            "blob": "ebab265de3051ef329df5cc4c97da8fdf2e3e4a2"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-parakeet.py",
+        "env": "parakeet",
+        "slug": "parakeet-tdt-0.6b-v3",
+        "input": "parakeet-tdt-0.6b-v3.nemo"
+      },
+      "quants": [
+        "Q8_0"
+      ],
+      "use": "Fallback",
+      "smoke": [
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.15
+        }
+      ]
+    },
+    {
+      "id": "nemotron-3.5-asr",
+      "kind": "speech",
+      "name": "Nemotron 3.5 ASR 0.6B",
+      "family": "parakeet",
+      "languages": [
+        "en-US",
+        "en-GB",
+        "es-US",
+        "es-ES",
+        "fr-FR",
+        "fr-CA",
+        "it-IT",
+        "pt-BR",
+        "pt-PT",
+        "nl-NL",
+        "de-DE",
+        "tr-TR",
+        "ru-RU",
+        "ar-AR",
+        "hi-IN",
+        "ja-JP",
+        "ko-KR",
+        "vi-VN",
+        "uk-UA",
+        "pl-PL",
+        "sv-SE",
+        "cs-CZ",
+        "nb-NO",
+        "da-DK",
+        "bg-BG",
+        "fi-FI",
+        "hr-HR",
+        "sk-SK",
+        "zh-CN",
+        "hu-HU",
+        "ro-RO",
+        "et-EE"
+      ],
+      "license": "openmdw-1.1",
+      "creators": [
+        "NVIDIA (nvidia/nemotron-3.5-asr-streaming-0.6b)"
+      ],
+      "source": {
+        "repo": "nvidia/nemotron-3.5-asr-streaming-0.6b",
+        "commit": "24b151a851dd15909e1fc611b11bb2da52b9fc81",
+        "include": [
+          "*.nemo"
+        ],
+        "files": [
+          {
+            "path": "nemotron-3.5-asr-streaming-0.6b.nemo",
+            "size": 2368284501,
+            "sha256": "210214ed94039bf6bfbb9a047c7fa289628db75b103e2bf6381fa78285436a74",
+            "blob": "cdc07d0eb40c1b945f0618098d388177f83c4bcf"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-parakeet.py",
+        "env": "parakeet",
+        "slug": "nemotron-3.5-asr-streaming-0.6b",
+        "input": "nemotron-3.5-asr-streaming-0.6b.nemo"
+      },
+      "quants": [
+        "Q8_0"
+      ],
+      "use": "Hindi, Arabic, Japanese and Korean, in batch mode",
+      "smoke": [
+        {
+          "audio": "ja.wav",
+          "language": "ja-JP",
+          "max_error": 0.3
+        },
+        {
+          "audio": "en.wav",
+          "language": "en-US",
+          "max_error": 0.15
+        }
+      ]
+    },
+    {
+      "id": "qwen3-asr-0.6b",
+      "kind": "speech",
+      "name": "Qwen3-ASR 0.6B",
+      "family": "qwen3_asr",
+      "languages": [
+        "zh",
+        "en",
+        "yue",
+        "ar",
+        "de",
+        "fr",
+        "es",
+        "pt",
+        "id",
+        "it",
+        "ko",
+        "ru",
+        "th",
+        "vi",
+        "ja",
+        "tr",
+        "hi",
+        "ms",
+        "nl",
+        "sv",
+        "da",
+        "fi",
+        "pl",
+        "cs",
+        "fil",
+        "fa",
+        "el",
+        "ro",
+        "hu",
+        "mk"
+      ],
+      "license": "apache-2.0",
+      "creators": [
+        "Qwen team, Alibaba Cloud (Qwen/Qwen3-ASR-0.6B)"
+      ],
+      "source": {
+        "repo": "Qwen/Qwen3-ASR-0.6B",
+        "commit": "5eb144179a02acc5e5ba31e748d22b0cf3e303b0",
+        "include": [
+          "*.json",
+          "*.txt",
+          "model.safetensors"
+        ],
+        "files": [
+          {
+            "path": "chat_template.json",
+            "size": 1161,
+            "sha256": "75a8cfca24f00de72d796fbfed6858fc9614ef3dabd8696684cc3bc03a9c58ff",
+            "blob": "c44736493efd71ec96218cc626904698cdb13235"
+          },
+          {
+            "path": "config.json",
+            "size": 6193,
+            "sha256": "76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c",
+            "blob": "8113d596dec2d1a2ef4552edfe005ee84d16d9ec"
+          },
+          {
+            "path": "generation_config.json",
+            "size": 142,
+            "sha256": "1da527824d81e07118facff437e03f2e24a23311e3bdeb2368973fe77e5f275c",
+            "blob": "7382a4d347c0a865b76bb1b8277f66a5ac312854"
+          },
+          {
+            "path": "merges.txt",
+            "size": 1671853,
+            "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+            "blob": "31349551d90c7606f325fe0f11bbb8bd5fa0d7c7"
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1876091704,
+            "sha256": "79d6cbd4c98c7bbffe9db2edac07f56cd6637d0d5944b27f6c2b8353840323ea",
+            "blob": "02eacfa01edf43c4bc94f412723f5b515762e326"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 330,
+            "sha256": "45e120a4eda2c20c5d7f2ea9354e63536bf35e27aa573fb7cdf78017b378770d",
+            "blob": "8f7f07346466d5d494ec0d4969d1c3d0190eed72"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 12487,
+            "sha256": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c",
+            "blob": "b93109843922a40c6654c5449d3bf95372267c66"
+          },
+          {
+            "path": "vocab.json",
+            "size": 2776833,
+            "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+            "blob": "4783fe10ac3adce15ac8f358ef5462739852c569"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-qwen3_asr.py",
+        "env": "qwen3_asr",
+        "slug": "qwen3-asr-0.6b",
+        "input": "dir"
+      },
+      "quants": [
+        "Q8_0"
+      ],
+      "use": "Chinese",
+      "smoke": [
+        {
+          "audio": "zh.wav",
+          "language": "zh",
+          "max_error": 0.2
+        },
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.15
+        }
+      ]
+    },
+    {
+      "id": "granite-speech-4.1-2b",
+      "kind": "speech",
+      "name": "Granite Speech 4.1 2B",
+      "family": "granite_speech",
+      "languages": [
+        "en",
+        "fr",
+        "de",
+        "es",
+        "pt",
+        "ja"
+      ],
+      "license": "apache-2.0",
+      "creators": [
+        "IBM Granite (ibm-granite/granite-speech-4.1-2b)"
+      ],
+      "source": {
+        "repo": "ibm-granite/granite-speech-4.1-2b",
+        "commit": "8f4bb5f31ae98971bd218169f00065a041d20058",
+        "include": [
+          "*.json",
+          "*.jinja",
+          "*.txt",
+          "*.safetensors"
+        ],
+        "files": [
+          {
+            "path": "added_tokens.json",
+            "size": 26,
+            "sha256": "b4956ad3505e979f2f25cc2e2be2163d8e23730f854b6c5a14ed106f3dd90549",
+            "blob": "186dbb7ba4dfeababf3bab97fcad3df6370805d4"
+          },
+          {
+            "path": "chat_template.jinja",
+            "size": 193,
+            "sha256": "e3219da52634178f68696475ea4518ade9d1b5c9a71b825f28312b73afc432c0",
+            "blob": "7401247dfd924fd8e3ce8981378996f4f504549f"
+          },
+          {
+            "path": "config.json",
+            "size": 2276,
+            "sha256": "cd1d45c8f93ea1b1c92efd5dbdeb134406cb28c8510a7c71d9b78a854d299691",
+            "blob": "38fa87a96f4b57547889f9de3b606cad14f45492"
+          },
+          {
+            "path": "merges.txt",
+            "size": 916646,
+            "sha256": "b6fe424e334903f7fb84d3a106d9730455f4744b9fe3c21ee136d97a00e72502",
+            "blob": "354558edcdbd64ca7abd407b8be3d5d09d39d781"
+          },
+          {
+            "path": "model-00001-of-00003.safetensors",
+            "size": 2143518808,
+            "sha256": "3c987fdc29940c49d2498ea5925e8d57f88661af3ef30f73e56e2434ded3e42f",
+            "blob": "e6ec903ac7e1f25b0231b4056d4f224666fe3ff7"
+          },
+          {
+            "path": "model-00002-of-00003.safetensors",
+            "size": 2143963456,
+            "sha256": "8e18d6d3fbe009a95a4cf305e31c2aab4a3484eccbce29aa1aa1454fc8c046ee",
+            "blob": "b33a7e919b53dfd93950ee43c48d61cd44ab4c0f"
+          },
+          {
+            "path": "model-00003-of-00003.safetensors",
+            "size": 339045512,
+            "sha256": "32f823497bc179f6f346efdd46984ab60e44b3d443bf40a18d757ddce626a2d2",
+            "blob": "c287ed1f0fa2e332a59e35b1d0b246434224cc61"
+          },
+          {
+            "path": "model.safetensors.index.json",
+            "size": 84396,
+            "sha256": "dec67acdc06e74d87650a54a4b5fbb07bfcdb4ed9fd1b95edef8651f5d64599b",
+            "blob": "d90a05a4b4e8aa1243c4dd5261ba6dbc2e9746c5"
+          },
+          {
+            "path": "out_llm.safetensors",
+            "size": 205723810,
+            "sha256": "6cc10d68fe05aec359aceffd597617c875b23f27211ee6dcdb7510d9e90fc64e",
+            "blob": "75b8e49bc5734ebf64d9b704234d6a0a9ea680b3"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 336,
+            "sha256": "382a6f26300937721969b01909c96c2e519620b6781f7b45cb8b2e348a932d87",
+            "blob": "d507d3fa867c82fc1591551755e136b0e3813a73"
+          },
+          {
+            "path": "processor_config.json",
+            "size": 80,
+            "sha256": "13edc723022827cc3620ba2e2b4bcf52287b365d77e60a31227f0a4b7dea5f9c",
+            "blob": "40f9b6150d2a39732e3af21f69629dbd06128154"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size": 579,
+            "sha256": "c08676c49fd7969a3130f72be6d4bf34da66aa484a6e21dffe359893a1bd5f2e",
+            "blob": "3f67e7c50d57b16925f4f15469a774e7bf439047"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 7153607,
+            "sha256": "43ca88fd0519c64ef93fa0a90cbc4e560fe485b5ba60348a86bc3c624f37918e",
+            "blob": "6e989460c6717b3c41dc05d51e9f3ee01082cda9"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 17882,
+            "sha256": "de233c19cd9efa63738f7481f318fc2048060f751ac9fd7957b131c43226b403",
+            "blob": "2ce55cb80cc2868e32ea40d081a3f46b912f4647"
+          },
+          {
+            "path": "vocab.json",
+            "size": 1612704,
+            "sha256": "8af71076de8b0b626eed0f4c984faf0a7c062479164b2a31308a948524d4f69c",
+            "blob": "4764ec73731a47701c2f49b01bb428342870f498"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-granite.py",
+        "env": "granite",
+        "slug": "granite-speech-4.1-2b",
+        "input": "dir"
+      },
+      "quants": [
+        "Q6_K"
+      ],
+      "use": "Optional re-pass on Macs with 32 GB or more and machines with a GPU",
+      "smoke": [
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.15
+        }
+      ]
+    },
+    {
+      "id": "whisper-large-v3-turbo",
+      "kind": "speech",
+      "name": "Whisper large-v3-turbo",
+      "family": "whisper",
+      "languages": [
+        "af",
+        "am",
+        "ar",
+        "as",
+        "az",
+        "ba",
+        "be",
+        "bg",
+        "bn",
+        "bo",
+        "br",
+        "bs",
+        "ca",
+        "cs",
+        "cy",
+        "da",
+        "de",
+        "el",
+        "en",
+        "es",
+        "et",
+        "eu",
+        "fa",
+        "fi",
+        "fo",
+        "fr",
+        "gl",
+        "gu",
+        "haw",
+        "ha",
+        "he",
+        "hi",
+        "hr",
+        "ht",
+        "hu",
+        "hy",
+        "id",
+        "is",
+        "it",
+        "ja",
+        "jw",
+        "ka",
+        "kk",
+        "km",
+        "kn",
+        "ko",
+        "la",
+        "lb",
+        "ln",
+        "lo",
+        "lt",
+        "lv",
+        "mg",
+        "mi",
+        "mk",
+        "ml",
+        "mn",
+        "mr",
+        "ms",
+        "mt",
+        "my",
+        "ne",
+        "nl",
+        "nn",
+        "no",
+        "oc",
+        "pa",
+        "pl",
+        "ps",
+        "pt",
+        "ro",
+        "ru",
+        "sa",
+        "sd",
+        "si",
+        "sk",
+        "sl",
+        "sn",
+        "so",
+        "sq",
+        "sr",
+        "su",
+        "sv",
+        "sw",
+        "ta",
+        "te",
+        "tg",
+        "th",
+        "tk",
+        "tl",
+        "tr",
+        "tt",
+        "uk",
+        "ur",
+        "uz",
+        "vi",
+        "yi",
+        "yo",
+        "yue",
+        "zh"
+      ],
+      "license": "mit",
+      "copyright": "Copyright (c) 2022 OpenAI",
+      "creators": [
+        "OpenAI (openai/whisper-large-v3-turbo)"
+      ],
+      "source": {
+        "repo": "openai/whisper-large-v3-turbo",
+        "commit": "41f01f3fe87f28c78e2fbf8b568835947dd65ed9",
+        "include": [
+          "*.json",
+          "*.txt",
+          "model.safetensors"
+        ],
+        "files": [
+          {
+            "path": "added_tokens.json",
+            "size": 34648,
+            "sha256": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+            "blob": "1b33526d33aaa60d79f78ae8651dae50b730185a"
+          },
+          {
+            "path": "config.json",
+            "size": 1256,
+            "sha256": "c5b526b3e3cd64cd8940dabb45e8ba726629e22d8ed389c29b552f9140daf04a",
+            "blob": "ad2f44ff1ed66e12765b2392dc041469db91a462"
+          },
+          {
+            "path": "generation_config.json",
+            "size": 3772,
+            "sha256": "cce11bfe3aaa6ae9e072ea2637caaec8795e68d9b67e655a5af16ee509681a4c",
+            "blob": "cbe752958dc3e4671b0e0220aa1c545423a6d5f5"
+          },
+          {
+            "path": "merges.txt",
+            "size": 493869,
+            "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+            "blob": "6038932a2a1f09a66991b1c2adae0d14066fa29e"
+          },
+          {
+            "path": "model.safetensors",
+            "size": 1617824864,
+            "sha256": "542566a422ae4f3fd23f1ba11add198fca01bbf82e66e6a2857b3f608b1eb9d1",
+            "blob": "d31c58c2bcd43b726463567df91f9a2b0581dd8e"
+          },
+          {
+            "path": "normalizer.json",
+            "size": 52666,
+            "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+            "blob": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 340,
+            "sha256": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711",
+            "blob": "931c77a740890c46365c7ae0c9d350ba3cca908f"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size": 2186,
+            "sha256": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+            "blob": "312bc106291bb51bf2cc1648df070bef963a0639"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 2710337,
+            "sha256": "297b13372ac43916285644fb9687add3cc62ee2a1adb60da3dc25cc94c1871fd",
+            "blob": "17456db595adc78a973f97d69d8cb50bc87c0b1c"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 282843,
+            "sha256": "844b642c73a91359722f47b35705f7174686df33d252695d8572cf9ac03a6389",
+            "blob": "06ffdc8308eae6bb7bd1fdd81e94b0a881a539ab"
+          },
+          {
+            "path": "vocab.json",
+            "size": 1036558,
+            "sha256": "e2aa043ef015641d363d8288e7c241c85e36a5c761fb303598e0710233344387",
+            "blob": "0f3456460629e21d559c6daa23ab6ce3644e8271"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-whisper.py",
+        "env": "whisper",
+        "slug": "whisper-large-v3-turbo",
+        "input": "dir"
+      },
+      "quants": [
+        "Q5_0"
+      ],
+      "use": "Other languages",
+      "smoke": [
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.15
+        },
+        {
+          "audio": "ja.wav",
+          "language": "ja",
+          "max_error": 0.3
+        }
+      ]
+    },
+    {
+      "id": "whisper-small",
+      "kind": "speech",
+      "name": "Whisper small",
+      "family": "whisper",
+      "languages": [
+        "af",
+        "am",
+        "ar",
+        "as",
+        "az",
+        "ba",
+        "be",
+        "bg",
+        "bn",
+        "bo",
+        "br",
+        "bs",
+        "ca",
+        "cs",
+        "cy",
+        "da",
+        "de",
+        "el",
+        "en",
+        "es",
+        "et",
+        "eu",
+        "fa",
+        "fi",
+        "fo",
+        "fr",
+        "gl",
+        "gu",
+        "haw",
+        "ha",
+        "he",
+        "hi",
+        "hr",
+        "ht",
+        "hu",
+        "hy",
+        "id",
+        "is",
+        "it",
+        "ja",
+        "jw",
+        "ka",
+        "kk",
+        "km",
+        "kn",
+        "ko",
+        "la",
+        "lb",
+        "ln",
+        "lo",
+        "lt",
+        "lv",
+        "mg",
+        "mi",
+        "mk",
+        "ml",
+        "mn",
+        "mr",
+        "ms",
+        "mt",
+        "my",
+        "ne",
+        "nl",
+        "nn",
+        "no",
+        "oc",
+        "pa",
+        "pl",
+        "ps",
+        "pt",
+        "ro",
+        "ru",
+        "sa",
+        "sd",
+        "si",
+        "sk",
+        "sl",
+        "sn",
+        "so",
+        "sq",
+        "sr",
+        "su",
+        "sv",
+        "sw",
+        "ta",
+        "te",
+        "tg",
+        "th",
+        "tk",
+        "tl",
+        "tr",
+        "tt",
+        "uk",
+        "ur",
+        "uz",
+        "vi",
+        "yi",
+        "yo",
+        "zh"
+      ],
+      "license": "apache-2.0",
+      "creators": [
+        "OpenAI (openai/whisper-small)"
+      ],
+      "source": {
+        "repo": "openai/whisper-small",
+        "commit": "973afd24965f72e36ca33b3055d56a652f456b4d",
+        "include": [
+          "*.json",
+          "*.txt",
+          "model.safetensors"
+        ],
+        "files": [
+          {
+            "path": "added_tokens.json",
+            "size": 34604,
+            "sha256": "9715fd2243b6f06a5858b5e32950d2853f73dd5bc201aafcf76f5082a2d8acd1",
+            "blob": "e3d256c988462aa153dcabe2aa38b8e9b436c06f"
+          },
+          {
+            "path": "config.json",
+            "size": 1967,
+            "sha256": "e6a2b489da1b5aed65a8eb8d1e7466fa867ad5643a8bc138ba708bd56b2875c4",
+            "blob": "113bb3efe3a7396f2ea629eef12637bd8085238d"
+          },
+          {
+            "path": "generation_config.json",
+            "size": 3868,
+            "sha256": "71565b8ef50d0bf7a1193ed4bbed195b94e70c18894d81bba2f1233dcec3ab53",
+            "blob": "d3823179a367fa912e3b911b3d2e71ab2a028290"
+          },
+          {
+            "path": "merges.txt",
+            "size": 493869,
+            "sha256": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+            "blob": "6038932a2a1f09a66991b1c2adae0d14066fa29e"
+          },
+          {
+            "path": "model.safetensors",
+            "size": 966995080,
+            "sha256": "1d7734884874f1a1513ed9aa760a4f8e97aaa02fd6d93a3a85d27b2ae9ca596b",
+            "blob": "b737d9fc4345d96e8f69b440ab742a269bf7e734"
+          },
+          {
+            "path": "normalizer.json",
+            "size": 52666,
+            "sha256": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+            "blob": "dd6ae819ad738ac1a546e9f9282ef325c33b9ea0"
+          },
+          {
+            "path": "preprocessor_config.json",
+            "size": 184990,
+            "sha256": "9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666",
+            "blob": "c2048dfa9fd94a052e62e908d2c4dfb18534b4d2"
+          },
+          {
+            "path": "special_tokens_map.json",
+            "size": 2194,
+            "sha256": "e67ae3a0aaa99abcd9f187138e12db1f65c16a14761c50ef10eef2c174a7a691",
+            "blob": "bf69932dca4b3719b59fdd8f6cc1978109509f6c"
+          },
+          {
+            "path": "tokenizer.json",
+            "size": 2480466,
+            "sha256": "27fc476bfe7f17299480be2273fc0608e4d5a99aba2ab5dec5374b4482d1a566",
+            "blob": "1e95340ff836fad1b5932e800fb7b8c5e6d78a74"
+          },
+          {
+            "path": "tokenizer_config.json",
+            "size": 282683,
+            "sha256": "2a4c4281cf9f51ac6ccc406fdc711a087afe6530f671fa7b80953edc498275ce",
+            "blob": "d13b786c04765fb1a06492b53587752cd67665ea"
+          },
+          {
+            "path": "vocab.json",
+            "size": 835550,
+            "sha256": "8f680bba319e01a653d2e8a5dbc17a9157179e0576e6ce74ce0c06356c6e24f9",
+            "blob": "d7016e21da8776c8a9d577d0f559600f09a240eb"
+          }
+        ]
+      },
+      "converter": {
+        "script": "convert-whisper.py",
+        "env": "whisper",
+        "slug": "whisper-small",
+        "input": "dir"
+      },
+      "quants": [
+        "Q5_1"
+      ],
+      "use": "Other languages on machines without a GPU",
+      "smoke": [
+        {
+          "audio": "en.wav",
+          "language": "en",
+          "max_error": 0.25
+        }
+      ]
+    },
+    {
+      "id": "silero-vad",
+      "kind": "vad",
+      "name": "Silero VAD v6.2",
+      "family": "silero_vad",
+      "languages": [],
+      "license": "mit",
+      "copyright": "Copyright (c) 2020-present Silero Team",
+      "creators": [
+        "Silero Team (snakers4/silero-vad)"
+      ],
+      "source": {
+        "host": "github",
+        "repo": "snakers4/silero-vad",
+        "commit": "5cd7945676eb32225748052e2e6a0580e4686a08",
+        "package": "the silero-vad 6.2.3 wheel on PyPI, locked by hash in transcribe.cpp's uv.lock and checked against the SHA-256 its converter pins"
+      },
+      "converter": {
+        "script": "convert-silero_vad.py",
+        "env": "silero_vad",
+        "slug": "silero-vad-v6.2",
+        "reference": "F32"
+      },
+      "quants": [
+        "F32"
+      ],
+      "use": "Voice activity detection, bundled",
+      "smoke": [
+        {
+          "audio": "en.wav"
+        }
+      ]
+    }
+  ],
+  "chat": [
+    {
+      "id": "qwen3.5-4b",
+      "kind": "chat",
+      "name": "Qwen3.5 4B",
+      "architecture": "qwen35",
+      "license": "apache-2.0",
+      "creators": [
+        "Qwen team, Alibaba Cloud (Qwen/Qwen3.5-4B)",
+        "Quantized to GGUF by Unsloth (unsloth/Qwen3.5-4B-GGUF)"
+      ],
+      "source": {
+        "repo": "unsloth/Qwen3.5-4B-GGUF",
+        "commit": "e87f176479d0855a907a41277aca2f8ee7a09523",
+        "file": {
+          "path": "Qwen3.5-4B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+          "size": 2740937888
+        }
+      },
+      "base": {
+        "repo": "Qwen/Qwen3.5-4B",
+        "commit": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+      },
+      "chat_template": {
+        "file": "templates/qwen3.5.jinja",
+        "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+        "source": "Qwen/Qwen3.5-4B@851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja"
+      },
+      "test": "chat",
+      "use": "8 GB Apple silicon, Intel Macs, Windows on the CPU or an integrated GPU, 6 GB GPUs",
+      "context": 16384,
+      "thinking": true
+    },
+    {
+      "id": "qwen3.5-9b",
+      "kind": "chat",
+      "name": "Qwen3.5 9B",
+      "architecture": "qwen35",
+      "license": "apache-2.0",
+      "creators": [
+        "Qwen team, Alibaba Cloud (Qwen/Qwen3.5-9B)",
+        "Quantized to GGUF by Unsloth (unsloth/Qwen3.5-9B-GGUF)"
+      ],
+      "source": {
+        "repo": "unsloth/Qwen3.5-9B-GGUF",
+        "commit": "3885219b6810b007914f3a7950a8d1b469d598a5",
+        "file": {
+          "path": "Qwen3.5-9B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "sha256": "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8",
+          "size": 5680522464
+        }
+      },
+      "base": {
+        "repo": "Qwen/Qwen3.5-9B",
+        "commit": "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+      },
+      "chat_template": {
+        "file": "templates/qwen3.5.jinja",
+        "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+        "source": "Qwen/Qwen3.5-9B@c202236235762e1c871ad0ccb60c8ee5ba337b9a/chat_template.jinja"
+      },
+      "test": "chat",
+      "use": "16–32 GB Apple silicon; Windows with 8–12 GB NVIDIA or 8 GB or more AMD or Intel",
+      "context": 32768,
+      "thinking": true
+    },
+    {
+      "id": "qwen3.6-35b-a3b",
+      "kind": "chat",
+      "name": "Qwen3.6 35B-A3B",
+      "architecture": "qwen35moe",
+      "license": "apache-2.0",
+      "creators": [
+        "Qwen team, Alibaba Cloud (Qwen/Qwen3.6-35B-A3B)",
+        "Quantized to GGUF by Unsloth (unsloth/Qwen3.6-35B-A3B-GGUF)"
+      ],
+      "source": {
+        "repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
+        "commit": "a483e9e6cbd595906af30beda3187c2663a1118c",
+        "file": {
+          "path": "Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+          "quant": "UD-IQ4_XS",
+          "sha256": "649d7508507b84638732c4f52c24c8b15843c6dca2f3ff793ae07c14a67ebbb3",
+          "size": 17730509792
+        }
+      },
+      "base": {
+        "repo": "Qwen/Qwen3.6-35B-A3B",
+        "commit": "995ad96eacd98c81ed38be0c5b274b04031597b0"
+      },
+      "chat_template": {
+        "file": "templates/qwen3.6.jinja",
+        "sha256": "e84f32a23fdda27689f868aa4a1a5621f41133e51a48d7f3efcbea2839574259",
+        "source": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0/chat_template.jinja"
+      },
+      "test": "load",
+      "use": "Macs whose GPU can use about 22 GB or more (36 GB or more); Ryzen AI Max; 24 GB GPUs",
+      "context": 32768,
+      "thinking": true
+    }
+  ]
+}
