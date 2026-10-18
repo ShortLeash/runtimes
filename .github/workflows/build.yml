@@ -1,13 +1,16 @@
 # Builds static PHP with more extensions, relocatable Ruby, pgvector for
-# each Postgres version DevKit installs, memcached for macOS, and libwebrtc
-# (without H.264) for DevKit, and attaches them to this
+# each Postgres version DevKit installs, memcached for macOS, libwebrtc
+# (without H.264) and the local AI engines (transcribe.cpp and llama.cpp) for
+# DevKit, and attaches them to this
 # repository's releases with a build attestation. DevKit's own publishing
 # verifies each file against that attestation before it signs and serves it.
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
 # Ruby, pgvector or memcached release, or to rebuild everything. libwebrtc
-# builds only when asked for by name (what: libwebrtc); it takes an hour or two. Only runs on main
+# builds only when asked for by name (what: libwebrtc); it takes an hour or two.
+# The voice engines build only when asked for by name too (what:
+# voice-engines), after their pins change. Only runs on main
 # attach files to releases; a run on another branch only builds.
 
 name: Build
@@ -20,7 +23,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector, memcached, libwebrtc]
+        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -61,6 +64,7 @@ jobs:
       pgvector: ${{ steps.plan.outputs.pgvector }}
       memcached: ${{ steps.plan.outputs.memcached }}
       libwebrtc: ${{ steps.plan.outputs.libwebrtc }}
+      voice_engines: ${{ steps.plan.outputs.voice_engines }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -237,14 +241,48 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  voice-engines:
+    needs: plan
+    if: needs.plan.outputs.voice_engines != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.voice_engines) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the voice engines for ${{ matrix.arch }}
+        if: matrix.os == 'macos'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/voice-engines.sh ${{ matrix.arch }} out
+      # cl.exe, link.exe and dumpbin on PATH for the build and smoke tests.
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os == 'windows'
+      - name: Build the voice engines for ${{ matrix.arch }}
+        if: matrix.os == 'windows'
+        shell: pwsh
+        env:
+          # A short folder on the runner's D: drive: ggml's Vulkan shaders
+          # have deep paths.
+          VOICE_ENGINES_WORK: ${{ runner.temp }}\ve
+        run: ./scripts/voice-engines-windows.ps1 ${{ matrix.arch }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: voice-engines-${{ matrix.os }}-${{ matrix.arch }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines]
     # Release what built; a build that failed or timed out keeps its last
     # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
