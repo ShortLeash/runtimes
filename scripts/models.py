@@ -591,7 +591,7 @@ def chat(args) -> None:
     result = {
         "id": model["id"],
         "vetted": {**vetted, "base": base, "security": info.get("securityFileStatus")},
-        "files": [{"name": f["path"], "sha256": f["sha256"], "size": f["size"], "asset": False,
+        "files": [{"name": f["path"], "quant": f["quant"], "sha256": f["sha256"], "size": f["size"], "asset": False,
                    "url": f"{HF}/{src['repo']}/resolve/{src['commit']}/{urllib.parse.quote(f['path'])}"}],
         "notice": notice_name,
         "test": test,
@@ -618,30 +618,63 @@ def platform_name() -> str:
     return f"{sys.platform.replace('darwin', 'macos')}-{machine}"
 
 
-def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
-    """One model's entry in the released catalogue.
+def iso639_1(languages: list) -> list:
+    """Each language's ISO 639-1 code, in order, once: locales lose their
+    region, and languages without a two-letter code are left out.
 
-    >>> m = {"id": "x", "kind": "speech", "name": "X", "license": "mit", "source": {"repo": "a/b", "commit": "c"}}
-    >>> r = {"files": [{"name": "x-Q8_0.gguf", "sha256": "d", "size": 1, "asset": True}], "notice": "x.NOTICE.txt",
-    ...      "test": {"level": "transcribe"}, "vetted": {}}
-    >>> merge(m, r, "models-2026-10-17", "o/r")["files"][0]["url"]
-    'https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf'
+    >>> iso639_1(["en-US", "en-GB", "ja-JP", "yue", "zh", "haw"])
+    ['en', 'ja', 'zh']
     """
-    entry = {k: v for k, v in model.items() if k not in ("converter", "smoke", "chat_template")}
-    entry["files"] = []
-    for f in result["files"]:
-        f = dict(f)
-        if f.pop("asset"):
-            f["url"] = f"https://github.com/{repo}/releases/download/{tag}/{f['name']}"
-        entry["files"].append(f)
-    entry["notice"] = {"name": result["notice"],
-                       "url": f"https://github.com/{repo}/releases/download/{tag}/{result['notice']}"}
-    entry["test"] = result["test"]
-    entry["vetted"] = result["vetted"]
+    out = []
+    for tag in languages:
+        code = tag.split("-")[0].lower()
+        if len(code) == 2 and code not in out:
+            out.append(code)
+    return out
+
+
+TESTED = {"transcribe": "full", "vad": "full", "chat": "full", "load": "load"}
+
+
+def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
+    """One model's entry in the released catalogue, in the shape DevKit's
+    manifest lists models (devkit-core's ai::catalogue::Model). DevKit's
+    publishing rewrites the URLs to its own server when it mirrors the files.
+    What DevKit doesn't read goes under details.
+
+    >>> m = {"id": "x", "kind": "speech", "name": "X", "license": "mit", "languages": ["en-US"], "creators": ["Y"],
+    ...      "source": {"repo": "a/b", "commit": "c"}}
+    >>> r = {"files": [{"name": "x-Q8_0.gguf", "quant": "Q8_0", "sha256": "d", "size": 1, "asset": True}],
+    ...      "notice": "x.NOTICE.txt", "test": {"level": "transcribe"}, "vetted": {}}
+    >>> e = merge(m, r, "models-2026-10-17", "o/r")
+    >>> e["files"][0]["url"], e["languages"], e["tested"], e["version"]
+    ('https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf', ['en'], 'full', 'c')
+    """
+    release = f"https://github.com/{repo}/releases/download/{tag}"
+    entry = {
+        "id": model["id"],
+        "kind": "llm" if model["kind"] == "chat" else model["kind"],
+        "name": model["name"],
+        "languages": iso639_1(model.get("languages", [])),
+        "license": model["license"],
+        "notice": f"{release}/{result['notice']}",
+        "version": model["source"]["commit"],
+        "files": [{"quant": f["quant"], "url": f"{release}/{f['name']}" if f["asset"] else f["url"],
+                   "sha256": f["sha256"], "size": f["size"]} for f in result["files"]],
+        "tested": TESTED[result["test"]["level"]],
+    }
     if model.get("chat_template"):
-        text = (MODELS / model["chat_template"]["file"]).read_text(encoding="utf-8")
-        entry["chat_template"] = {"source": model["chat_template"]["source"],
-                                  "sha256": hashlib.sha256(text.encode()).hexdigest(), "text": text}
+        entry["llm"] = {"template": (MODELS / model["chat_template"]["file"]).read_text(encoding="utf-8"),
+                        "context": model["context"], "thinking": model["thinking"]}
+    entry["details"] = {
+        "family": model.get("family"), "use": model.get("use"), "creators": model["creators"],
+        "source": {k: v for k, v in model["source"].items() if k not in ("files", "include")},
+        "base": model.get("base"), "languages": model.get("languages", []),
+        "files": [f["name"] for f in result["files"]], "test": result["test"], "vetted": result["vetted"],
+    }
+    if model.get("chat_template"):
+        entry["details"]["chat_template"] = {"source": model["chat_template"]["source"],
+                                             "sha256": model["chat_template"]["sha256"]}
     return entry
 
 
@@ -652,25 +685,27 @@ def catalogue_cmd(args) -> None:
     repo = os.environ.get("GITHUB_REPOSITORY", "frankperez87/devkit-runtimes")
     released = {"schema": catalogue["schema"], "release": args.tag,
                 "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "engines": engine_pins(), "speech": [], "chat": []}
-    for kind in ("speech", "chat"):
-        for model in catalogue[kind]:
-            path = results_dir / f"{model['id']}.result.json"
-            if not path.is_file():
-                sys.exit(f"no result for {model['id']}: every catalogue model must pass before a release")
-            result = json.loads(path.read_text(encoding="utf-8"))
-            for f in result["files"]:
-                if f["asset"]:
-                    local = results_dir / f["name"]
-                    if sha256(local) != f["sha256"]:
-                        sys.exit(f"{f['name']} changed after its tests")
-                    if results_dir.resolve() != out.resolve():
-                        shutil.copy2(local, out / f["name"])
-            if results_dir.resolve() != out.resolve():
-                shutil.copy2(results_dir / result["notice"], out / result["notice"])
-            released[kind].append(merge(model, result, args.tag, repo))
+                "engines": engine_pins(), "models": []}
+    for model in catalogue["speech"] + catalogue["chat"]:
+        path = results_dir / f"{model['id']}.result.json"
+        if not path.is_file():
+            sys.exit(f"no result for {model['id']}: every catalogue model must pass before a release")
+        result = json.loads(path.read_text(encoding="utf-8"))
+        for f in result["files"]:
+            if f["asset"]:
+                local = results_dir / f["name"]
+                if sha256(local) != f["sha256"]:
+                    sys.exit(f"{f['name']} changed after its tests")
+                if results_dir.resolve() != out.resolve():
+                    shutil.copy2(local, out / f["name"])
+        if results_dir.resolve() != out.resolve():
+            shutil.copy2(results_dir / result["notice"], out / result["notice"])
+        entry = merge(model, result, args.tag, repo)
+        if entry["license"] not in ALLOWED or any(len(f["sha256"]) != 64 for f in entry["files"]):
+            sys.exit(f"{model['id']}: DevKit would drop this entry (licence or SHA-256)")
+        released["models"].append(entry)
     (out / "catalogue.json").write_text(json.dumps(released, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"catalogue.json: {len(released['speech'])} speech and {len(released['chat'])} chat models")
+    print(f"catalogue.json: {len(released['models'])} models")
 
 
 def ids_cmd(args) -> None:
