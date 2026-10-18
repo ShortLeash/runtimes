@@ -1,0 +1,17 @@
+{
+  "known": [
+    "GHSA-3p4r-fq3f-q74v",
+    "GHSA-49q7-2jmh-92fp",
+    "GHSA-5vm9-p64x-gqw9",
+    "GHSA-7rxv-5jhh-j6xx",
+    "GHSA-8947-pfff-2f3c",
+    "GHSA-8wwf-w4qm-gpqr",
+    "GHSA-96jg-mvhq-q7q7",
+    "GHSA-g4cc-763q-h9h6",
+    "GHSA-j8rj-fmpv-wcxw",
+    "GHSA-mqp6-7pv6-fqjf",
+    "GHSA-p5mv-gjc5-mwqv",
+    "GHSA-vgg9-87g3-85w8",
+    "GHSA-wcr5-566p-9cwj"
+  ]
+}
