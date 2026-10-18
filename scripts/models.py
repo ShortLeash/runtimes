@@ -62,7 +62,7 @@ LICENSE_NAME = {"mit": "MIT License", "apache-2.0": "Apache License 2.0",
 
 
 def load_catalogue() -> dict:
-    return json.loads((MODELS / "catalogue.json").read_text())
+    return json.loads((MODELS / "catalogue.json").read_text(encoding="utf-8"))
 
 
 def find(catalogue: dict, model_id: str) -> dict:
@@ -340,7 +340,7 @@ def notice(model: dict, files: list, engines: dict) -> str:
               "its licence says. Its creators don't endorse DevKit, and DevKit doesn't endorse the model's",
               "output. The licence's own disclaimer and limitation of liability below apply.", "",
               "-" * 72, ""]
-    text = (MODELS / "licenses" / LICENSE_TEXT[model["license"]]).read_text()
+    text = (MODELS / "licenses" / LICENSE_TEXT[model["license"]]).read_text(encoding="utf-8")
     if model["license"] == "mit":
         text = text.replace("{copyright}", model["copyright"])
     return "\n".join(lines) + text
@@ -410,7 +410,7 @@ def speech(args) -> None:
     ref.unlink()
 
     # Smoke tests on the CPU, for every quantization.
-    fixtures = json.loads((MODELS / "fixtures" / "fixtures.json").read_text())["audio"]
+    fixtures = json.loads((MODELS / "fixtures" / "fixtures.json").read_text(encoding="utf-8"))["audio"]
     results = []
     for dest in produced:
         header = gguf_header(dest)
@@ -546,7 +546,7 @@ def chat(args) -> None:
             "gguf": {"version": header["version"], "tensors": header["tensors"],
                      "architecture": header["metadata"].get("general.architecture"),
                      "embedded_template_sha256": hashlib.sha256(embedded.encode()).hexdigest() if embedded else None,
-                     "embedded_template_matches": embedded == template.read_text() if embedded else False}}
+                     "embedded_template_matches": embedded == template.read_text(encoding="utf-8") if embedded else False}}
 
     threads = str(os.cpu_count() or 4)
     if model["test"] == "load":
@@ -560,7 +560,7 @@ def chat(args) -> None:
         finally:
             server.stop()
     else:
-        fx = json.loads((MODELS / "fixtures" / "fixtures.json").read_text())["chat"]
+        fx = json.loads((MODELS / "fixtures" / "fixtures.json").read_text(encoding="utf-8"))["chat"]
         server = Server(tools, gguf, template, ["-c", "8192", "-t", threads])
         try:
             server.wait(900)
@@ -605,7 +605,7 @@ def chat(args) -> None:
 
 def engine_pins() -> dict:
     pins = {}
-    for line in (HERE / "voice-engines.env").read_text().splitlines():
+    for line in (HERE / "voice-engines.env").read_text(encoding="utf-8").splitlines():
         m = re.match(r"^([A-Z0-9_]+)=(.*)$", line.strip())
         if m:
             pins[m[1]] = m[2]
@@ -639,7 +639,7 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     entry["test"] = result["test"]
     entry["vetted"] = result["vetted"]
     if model.get("chat_template"):
-        text = (MODELS / model["chat_template"]["file"]).read_text()
+        text = (MODELS / model["chat_template"]["file"]).read_text(encoding="utf-8")
         entry["chat_template"] = {"source": model["chat_template"]["source"],
                                   "sha256": hashlib.sha256(text.encode()).hexdigest(), "text": text}
     return entry
@@ -658,7 +658,7 @@ def catalogue_cmd(args) -> None:
             path = results_dir / f"{model['id']}.result.json"
             if not path.is_file():
                 sys.exit(f"no result for {model['id']}: every catalogue model must pass before a release")
-            result = json.loads(path.read_text())
+            result = json.loads(path.read_text(encoding="utf-8"))
             for f in result["files"]:
                 if f["asset"]:
                     local = results_dir / f["name"]

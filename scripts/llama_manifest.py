@@ -86,7 +86,7 @@ def main() -> None:
         system_libs = ["c++"]
         frameworks = ["Accelerate", "Foundation"] + (["Metal", "MetalKit", "CoreGraphics"] if metal else [])
     commit = subprocess.run(["git", "-C", str(src), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-    version = re.search(r"Version: (\S+)", (lib / "pkgconfig" / "llama.pc").read_text())
+    version = re.search(r"Version: (\S+)", (lib / "pkgconfig" / "llama.pc").read_text(encoding="utf-8"))
     manifest = {
         "commit": commit,
         "version": version[1] if version else None,

@@ -154,7 +154,7 @@ def fix_refs(patched: list) -> list:
 def advisories(pinned: str) -> list:
     """New llama.cpp security advisories, and whether the pinned commit has
     each fix (when the advisory names the build tag or commit that fixed it)."""
-    known = set(json.loads(ADVISORIES.read_text())["known"]) if ADVISORIES.is_file() else set()
+    known = set(json.loads(ADVISORIES.read_text(encoding="utf-8"))["known"]) if ADVISORIES.is_file() else set()
     found = []
     for adv in models.api(f"{models.GITHUB}/repos/ggml-org/llama.cpp/security-advisories?per_page=100"):
         if adv["ghsa_id"] in known:
@@ -171,7 +171,7 @@ def advisories(pinned: str) -> list:
 
 
 def check(report_path: str) -> None:
-    catalogue = json.loads(CATALOGUE.read_text())
+    catalogue = json.loads(CATALOGUE.read_text(encoding="utf-8"))
     report = {"speech": [], "chat": [], "advisories": [], "notes": []}
     for model in catalogue["speech"]:
         u = speech_update(model)
@@ -194,7 +194,7 @@ def check(report_path: str) -> None:
     report["advisories"] = advisories(pins["llama_commit"])
     CATALOGUE.write_text(json.dumps(catalogue, indent=2, ensure_ascii=False) + "\n")
     if report["advisories"]:
-        known = json.loads(ADVISORIES.read_text())["known"] if ADVISORIES.is_file() else []
+        known = json.loads(ADVISORIES.read_text(encoding="utf-8"))["known"] if ADVISORIES.is_file() else []
         ADVISORIES.write_text(json.dumps({"known": sorted(set(known) | {a["ghsa"] for a in report["advisories"]})},
                                          indent=2) + "\n")
     report["changed_ids"] = [u["id"] for u in report["speech"] + report["chat"] if u.get("licence_ok")]
@@ -208,7 +208,7 @@ def test_line(results: pathlib.Path, model_id: str) -> tuple:
     path = results / f"{model_id}.result.json"
     if not path.is_file():
         return False, f"**Failed its checks or tests**; see `{model_id}.log` in the run's artifacts."
-    test = json.loads(path.read_text())["test"]
+    test = json.loads(path.read_text(encoding="utf-8"))["test"]
     detail = ""
     if test.get("results"):
         rates = [t["error_rate"] for r in test["results"] for t in r.get("tests", []) if "error_rate" in t]
@@ -218,7 +218,7 @@ def test_line(results: pathlib.Path, model_id: str) -> tuple:
 
 
 def pr(report_path: str, results_dir: str) -> None:
-    report = json.loads(pathlib.Path(report_path).read_text())
+    report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
     results = pathlib.Path(results_dir)
     lines, failed = [], False
     lines += ["Weekly check of the catalogue's models and of llama.cpp's security advisories, by "

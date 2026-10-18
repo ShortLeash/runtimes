@@ -28,7 +28,7 @@ def parse_env(text: str) -> dict:
 
 def main() -> None:
     dest = pathlib.Path(sys.argv[1])
-    pins = parse_env((pathlib.Path(__file__).resolve().parent / "voice-engines.env").read_text())
+    pins = parse_env((pathlib.Path(__file__).resolve().parent / "voice-engines.env").read_text(encoding="utf-8"))
     info = {
         "transcribe": {"version": pins["TRANSCRIBE_VERSION"], "commit": pins["TRANSCRIBE_COMMIT"],
                        "crate": f"transcribe-cpp-sys {pins['TRANSCRIBE_VERSION']}",

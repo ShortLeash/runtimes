@@ -72,7 +72,7 @@ def msvc_command(source: pathlib.Path, prefix: pathlib.Path, manifest: dict, inc
 
 def build(args, name: str, source: pathlib.Path, prefix: pathlib.Path, manifest_name: str, includes: list,
           cxx: bool) -> pathlib.Path:
-    manifest = json.loads((prefix / "lib" / manifest_name).read_text())
+    manifest = json.loads((prefix / "lib" / manifest_name).read_text(encoding="utf-8"))
     out = pathlib.Path(args.results).parent / (name + (".exe" if args.msvc else ""))
     if args.msvc:
         cmd = msvc_command(source, prefix, manifest, includes, out)
@@ -101,7 +101,7 @@ def run(args, cmd: list, prefix_dirs: list) -> subprocess.CompletedProcess:
 
 
 def module_dir(prefix: pathlib.Path, manifest_name: str) -> str:
-    manifest = json.loads((prefix / "lib" / manifest_name).read_text())
+    manifest = json.loads((prefix / "lib" / manifest_name).read_text(encoding="utf-8"))
     return str(prefix / manifest["module_dir"]) if manifest.get("backend_dl") else "-"
 
 
@@ -116,7 +116,7 @@ def main() -> None:
     args = p.parse_args()
     pkg = pathlib.Path(args.pkg).resolve()
     pathlib.Path(args.results).parent.mkdir(parents=True, exist_ok=True)
-    fixtures = json.loads((pathlib.Path(args.fixtures) / "fixtures.json").read_text())["audio"]
+    fixtures = json.loads((pathlib.Path(args.fixtures) / "fixtures.json").read_text(encoding="utf-8"))["audio"]
     results = {"run_under": args.run_prefix or None}
 
     t = pkg / "transcribe"
