@@ -93,3 +93,38 @@ Google's WebRTC (BSD-3-Clause) from LiveKit's fork (`webrtc-sdk/webrtc`), built 
 | libjpeg-turbo | IJG and BSD-3-Clause |
 | g711, g722 | public domain |
 | fft (Mark Olesen), Ooura FFT, spl_sqrt_floor | permissive notices |
+
+## Voice engines
+
+Two engines, each with its own copy of ggml. Each archive includes the engines' licence files in `LICENSES/`.
+
+| Component | Licence |
+|---|---|
+| transcribe.cpp (handy-computer) | MIT |
+| ggml (in transcribe.cpp and in llama.cpp), with llamafile's tinyBLAS kernels | MIT |
+| llama.cpp and its `common` library | MIT |
+| nlohmann/json, cpp-httplib (in llama.cpp's `common`) | MIT |
+| miniz, Silero VAD's runtime code (in transcribe.cpp) | MIT |
+| dr_wav (only in the smoke test, not in the archives) | Public domain or MIT-0 |
+
+The Windows build uses the Vulkan SDK (LunarG) to compile shaders and link against `vulkan-1.dll`; the SDK isn't in the archives, and DevKit loads the Vulkan loader the system provides.
+
+## Models
+
+The models keep their creators' licences. Each model in a `models-<date>` release has a `NOTICE.txt` with its creators, source and commit, licence, what changed, a disclaimer and the full licence text, from [`models/licenses/`](models/licenses). The catalogue allows only these licences:
+
+| Model | Creator | Licence | In the release |
+|---|---|---|---|
+| Parakeet Ultra | Moondream, post-trained from NVIDIA's Parakeet TDT 0.6B v3 | CC-BY-4.0 | converted and quantized by DevKit |
+| Parakeet TDT 0.6B v3 | NVIDIA | CC-BY-4.0 | converted and quantized by DevKit |
+| Nemotron 3.5 ASR 0.6B | NVIDIA | OpenMDW-1.1 | converted and quantized by DevKit |
+| Qwen3-ASR 0.6B | Qwen team, Alibaba Cloud | Apache-2.0 | converted and quantized by DevKit |
+| Granite Speech 4.1 2B | IBM | Apache-2.0 | converted and quantized by DevKit |
+| Whisper large-v3-turbo | OpenAI | MIT | converted and quantized by DevKit |
+| Whisper small | OpenAI | Apache-2.0 | converted and quantized by DevKit |
+| Silero VAD v6.2 | Silero Team | MIT | converted by DevKit |
+| Qwen3.5 4B and 9B, Qwen3.6 35B-A3B | Qwen team, Alibaba Cloud; quantized to GGUF by Unsloth | Apache-2.0 | pinned on Hugging Face, unmodified |
+
+CC-BY-4.0 asks that changes be indicated: quantizing changes a model's weights, so the speech models' notices say they're modified. OpenMDW-1.1 ends the rights of anyone who sues claiming the model infringes a patent or copyright, unless they were sued first.
+
+The speech test clips in [`models/fixtures/`](models/fixtures) come from Google's [FLEURS](https://huggingface.co/datasets/google/fleurs) test split (CC-BY-4.0), by way of transcribe.cpp's samples; [`models/fixtures/fixtures.json`](models/fixtures/fixtures.json) names each clip's FLEURS utterance and reference text. The chat templates in [`models/templates/`](models/templates) are Qwen's (Apache-2.0), unmodified.
