@@ -4,7 +4,11 @@
       "language": "en",
       "sha256": "7835bd6ffb54ce38a2a9bcde3905ba424faed94d50a474f21a9cbe9209b869df",
       "text": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
-      "fleurs": "en_us test, sentence 1904"
+      "fleurs": "en_us test, sentence 1904",
+      "also": [
+        "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 years.",
+        "However, due to the slow communication channels, styles in the west could lag behind by twenty-five to thirty years."
+      ]
     },
     "zh.wav": {
       "language": "zh",
@@ -16,14 +20,19 @@
       "language": "ja",
       "sha256": "c41869f5ab5bdbb81b70d5d0fc32dc12b50aacb94266ada750cbda27f63054b4",
       "text": "しかし、通信経路が遅いため、西欧のスタイルは25～30年遅れている可能性があります。",
-      "fleurs": "ja_jp test, 8296538110626558656.wav"
+      "fleurs": "ja_jp test, 8296538110626558656.wav",
+      "also": [
+        "しかし、通信経路が遅いため、西欧のスタイルは25年から30年遅れている可能性があります。"
+      ]
     }
   },
   "chat": {
     "json": {
       "system": "Answer with one JSON object and nothing else.",
       "user": "Give the port HTTPS uses by default and the protocol name, as {\"port\": number, \"protocol\": string}.",
-      "expect": {"port": 443}
+      "expect": {
+        "port": 443
+      }
     },
     "tool": {
       "user": "Show me the recent log lines for the site shop.test.",
@@ -35,8 +44,15 @@
             "description": "Recent log lines of a site DevKit serves.",
             "parameters": {
               "type": "object",
-              "properties": {"site": {"type": "string", "description": "The site's domain, such as blog.test."}},
-              "required": ["site"]
+              "properties": {
+                "site": {
+                  "type": "string",
+                  "description": "The site's domain, such as blog.test."
+                }
+              },
+              "required": [
+                "site"
+              ]
             }
           }
         },
@@ -45,11 +61,19 @@
           "function": {
             "name": "list_sites",
             "description": "Every site DevKit serves, with its state.",
-            "parameters": {"type": "object", "properties": {}}
+            "parameters": {
+              "type": "object",
+              "properties": {}
+            }
           }
         }
       ],
-      "expect": {"name": "get_logs", "arguments": {"site": "shop.test"}}
+      "expect": {
+        "name": "get_logs",
+        "arguments": {
+          "site": "shop.test"
+        }
+      }
     }
   }
 }

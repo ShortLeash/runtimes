@@ -52,5 +52,16 @@ def error_rate(language: str, reference: str, transcript: str) -> float:
     return distance(ref, hyp) / max(len(ref), 1)
 
 
+def fixture_error_rate(fixture: dict, transcript: str) -> float:
+    """The lowest error rate against a fixture's reference text and its
+    accepted variants ("also": numbers written out, a corrected typo).
+
+    >>> f = {"language": "en", "text": "by 25 to 30 year", "also": ["by twenty-five to thirty years"]}
+    >>> fixture_error_rate(f, "by twenty five to thirty years")
+    0.0
+    """
+    return min(error_rate(fixture["language"], ref, transcript) for ref in [fixture["text"]] + fixture.get("also", []))
+
+
 if __name__ == "__main__":
     print(f"{error_rate(sys.argv[1], sys.argv[2], sys.argv[3]):.3f}")

@@ -47,7 +47,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent
 MODELS = REPO / "models"
 sys.path.insert(0, str(HERE))
-from speech_check import error_rate  # noqa: E402
+from speech_check import fixture_error_rate  # noqa: E402
 
 HF = "https://huggingface.co"
 GITHUB = "https://api.github.com"
@@ -428,8 +428,7 @@ def speech(args) -> None:
                 if not segments:
                     sys.exit(f"{dest.name} found no speech in {wav.name}")
                 continue
-            ref_text = fixtures[test["audio"]]["text"]
-            err = error_rate(fixtures[test["audio"]]["language"], ref_text, text)
+            err = fixture_error_rate(fixtures[test["audio"]], text)
             checked["tests"].append({"audio": wav.name, "text": text, "error_rate": round(err, 3),
                                      "max_error": test["max_error"]})
             print(f"{dest.name} on {wav.name}: error rate {err:.3f} (max {test['max_error']})", flush=True)

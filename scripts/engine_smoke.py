@@ -23,7 +23,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from speech_check import error_rate  # noqa: E402
+from speech_check import fixture_error_rate  # noqa: E402
 
 SMOKE = pathlib.Path(__file__).resolve().parent / "smoke"
 # whisper-tiny is a weak model; this catches a broken engine, not a weak one.
@@ -124,7 +124,7 @@ def main() -> None:
     wav = pathlib.Path(args.fixtures) / "en.wav"
     res = run(args, [exe, module_dir(t, "transcribe-link.json"), args.transcribe_model, wav], [t / "bin", t / "lib"])
     text = res.stdout.strip()
-    err = error_rate("en", fixtures["en.wav"]["text"], text)
+    err = fixture_error_rate(fixtures["en.wav"], text)
     backend = [line.split(" ", 1)[1] for line in res.stderr.splitlines() if line.startswith("backend ")]
     devices = [line.split(" ", 1)[1] for line in res.stderr.splitlines() if line.startswith("device ")]
     results["transcribe"] = {"model": pathlib.Path(args.transcribe_model).name, "audio": wav.name, "text": text,
