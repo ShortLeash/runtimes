@@ -155,7 +155,7 @@
       ]
     },
     {
-      "id": "nemotron-3.5-asr-0.6b",
+      "id": "nemotron-3.5-asr",
       "kind": "speech",
       "name": "Nemotron 3.5 ASR 0.6B",
       "family": "parakeet",
@@ -691,7 +691,7 @@
         "input": "dir"
       },
       "quants": [
-        "Q5_K_M"
+        "Q5_0"
       ],
       "use": "Other languages",
       "smoke": [
@@ -901,7 +901,7 @@
         "input": "dir"
       },
       "quants": [
-        "Q8_0"
+        "Q5_1"
       ],
       "use": "Other languages on machines without a GPU",
       "smoke": [
@@ -913,7 +913,7 @@
       ]
     },
     {
-      "id": "silero-vad-v6.2",
+      "id": "silero-vad",
       "kind": "vad",
       "name": "Silero VAD v6.2",
       "family": "silero_vad",
@@ -962,6 +962,7 @@
         "commit": "e87f176479d0855a907a41277aca2f8ee7a09523",
         "file": {
           "path": "Qwen3.5-4B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
           "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
           "size": 2740937888
         }
@@ -976,7 +977,9 @@
         "source": "Qwen/Qwen3.5-4B@851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/chat_template.jinja"
       },
       "test": "chat",
-      "use": "8 GB Apple silicon, Intel Macs, Windows on the CPU or an integrated GPU, 6 GB GPUs"
+      "use": "8 GB Apple silicon, Intel Macs, Windows on the CPU or an integrated GPU, 6 GB GPUs",
+      "context": 16384,
+      "thinking": true
     },
     {
       "id": "qwen3.5-9b",
@@ -993,6 +996,7 @@
         "commit": "3885219b6810b007914f3a7950a8d1b469d598a5",
         "file": {
           "path": "Qwen3.5-9B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
           "sha256": "03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8",
           "size": 5680522464
         }
@@ -1007,7 +1011,9 @@
         "source": "Qwen/Qwen3.5-9B@c202236235762e1c871ad0ccb60c8ee5ba337b9a/chat_template.jinja"
       },
       "test": "chat",
-      "use": "16–32 GB Apple silicon; Windows with 8–12 GB NVIDIA or 8 GB or more AMD or Intel"
+      "use": "16–32 GB Apple silicon; Windows with 8–12 GB NVIDIA or 8 GB or more AMD or Intel",
+      "context": 32768,
+      "thinking": true
     },
     {
       "id": "qwen3.6-35b-a3b",
@@ -1024,6 +1030,7 @@
         "commit": "a483e9e6cbd595906af30beda3187c2663a1118c",
         "file": {
           "path": "Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+          "quant": "UD-IQ4_XS",
           "sha256": "649d7508507b84638732c4f52c24c8b15843c6dca2f3ff793ae07c14a67ebbb3",
           "size": 17730509792
         }
@@ -1038,7 +1045,9 @@
         "source": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0/chat_template.jinja"
       },
       "test": "load",
-      "use": "Macs whose GPU can use about 22 GB or more (36 GB or more); Ryzen AI Max; 24 GB GPUs"
+      "use": "Macs whose GPU can use about 22 GB or more (36 GB or more); Ryzen AI Max; 24 GB GPUs",
+      "context": 32768,
+      "thinking": true
     }
   ]
 }
