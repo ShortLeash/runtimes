@@ -122,7 +122,8 @@ $glslc = (& glslc --version | Select-Object -First 1)
 
 # The compiler DevKit's Redistributable pin follows.
 if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw 'cl.exe is not on PATH; run from a Visual Studio developer prompt' }
-$clBanner = (& cl.exe 2>&1 | Select-Object -First 1).ToString()
+# cl prints its banner (with the version) to stderr and its usage to stdout.
+$clBanner = (& cl.exe 2>&1 | ForEach-Object { $_.ToString() } | Where-Object { $_ -match 'Compiler Version' } | Select-Object -First 1)
 if ($clBanner -notmatch 'Version (\d+\.\d+\.\d+)') { throw "Can't read the MSVC version from: $clBanner" }
 $msvc = @{ compiler = $Matches[1]; toolset = $env:VCToolsVersion; redist = $env:VCToolsRedistDir; banner = $clBanner }
 
