@@ -12,15 +12,23 @@
 # allowlist. Tests run on the CPU (hosted runners have no GPU), and each
 # model's test level is recorded in catalogue.json.
 #
-# Runs when catalogue.json changes on main, and by hand. A run by hand can
-# name models to test (only), which releases nothing.
+# Runs when the catalogue, its fixtures or the scripts that test it change on
+# main, and by hand. A run by hand can name models to test (only), which
+# releases nothing.
 
 name: Models
 
 on:
   push:
     branches: [main]
-    paths: [models/catalogue.json]
+    paths:
+      - models/**
+      - scripts/models.*
+      - scripts/speech_check.py
+      - scripts/lib.sh
+      - scripts/engines.sh
+      - scripts/voice-engines.env
+      - .github/workflows/models.yml
   workflow_dispatch:
     inputs:
       only:
@@ -90,7 +98,7 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL || true
           # The runner's second disk has the most room, when there is one.
           if [ -d /mnt ] && [ "$(df --output=avail /mnt | tail -1)" -gt "$(df --output=avail "$RUNNER_TEMP" | tail -1)" ]; then
-            sudo mkdir -p /mnt/models && sudo chown "$USER" /mnt/models
+            sudo mkdir -p /mnt/models && sudo chown "$(id -un)" /mnt/models
             echo "MODELS_WORK=/mnt/models" >> "$GITHUB_ENV"
           else
             echo "MODELS_WORK=$RUNNER_TEMP/models" >> "$GITHUB_ENV"
@@ -105,6 +113,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           set -euo pipefail
+          mkdir -p "$MODELS_WORK"
           tar -C "$MODELS_WORK" -xzf tools.tar.gz
           scripts/models.sh ${{ matrix.id }} out "$MODELS_WORK/tools"
       - uses: actions/upload-artifact@v7
@@ -131,7 +140,7 @@ jobs:
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL || true
           # The runner's second disk has the most room, when there is one.
           if [ -d /mnt ] && [ "$(df --output=avail /mnt | tail -1)" -gt "$(df --output=avail "$RUNNER_TEMP" | tail -1)" ]; then
-            sudo mkdir -p /mnt/models && sudo chown "$USER" /mnt/models
+            sudo mkdir -p /mnt/models && sudo chown "$(id -un)" /mnt/models
             echo "MODELS_WORK=/mnt/models" >> "$GITHUB_ENV"
           else
             echo "MODELS_WORK=$RUNNER_TEMP/models" >> "$GITHUB_ENV"
@@ -145,6 +154,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           set -euo pipefail
+          mkdir -p "$MODELS_WORK"
           tar -C "$MODELS_WORK" -xzf tools.tar.gz
           scripts/models.sh ${{ matrix.id }} out "$MODELS_WORK/tools"
       - uses: actions/upload-artifact@v7
@@ -180,13 +190,17 @@ jobs:
           # A second release on the same day gets the run number.
           if gh release view "$tag" >/dev/null 2>&1; then tag="$tag-$GITHUB_RUN_NUMBER"; fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - run: scripts/models.sh catalogue results release ${{ steps.tag.outputs.tag }}
+      - run: |
+          set -euo pipefail
+          scripts/models.sh catalogue results release ${{ steps.tag.outputs.tag }}
+          cp LICENSES.md release/
       - uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             release/*.gguf
             release/*.NOTICE.txt
             release/catalogue.json
+            release/LICENSES.md
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
