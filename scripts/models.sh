@@ -40,6 +40,8 @@ build_tools() {
   # Static and CPU only; these run in CI and never ship. Not tuned to the
   # build machine: CI builds them once for runners with other CPUs.
   local common=(-DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_CCACHE=OFF -DBUILD_SHARED_LIBS=OFF)
+  # Every hosted x86_64 runner has AVX2; without it the chat tests crawl.
+  [ "$(uname -m)" = x86_64 ] && common+=(-DGGML_AVX=ON -DGGML_AVX2=ON -DGGML_FMA=ON -DGGML_F16C=ON)
   cmake -S "$work/transcribe.cpp" -B "$work/tools-transcribe" "${common[@]}" \
     -DTRANSCRIBE_BUILD_TOOLS=ON -DTRANSCRIBE_BUILD_EXAMPLES=ON -DTRANSCRIBE_BUILD_TESTS=OFF \
     -DTRANSCRIBE_BUILD_SHARED=OFF -DTRANSCRIBE_METAL=OFF -DTRANSCRIBE_VULKAN=OFF -DTRANSCRIBE_USE_OPENMP=OFF >/dev/null
