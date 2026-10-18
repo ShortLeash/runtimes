@@ -225,12 +225,12 @@
       "smoke": [
         {
           "audio": "ja.wav",
-          "language": "ja",
+          "language": "ja-JP",
           "max_error": 0.3
         },
         {
           "audio": "en.wav",
-          "language": "en",
+          "language": "en-US",
           "max_error": 0.15
         }
       ]
