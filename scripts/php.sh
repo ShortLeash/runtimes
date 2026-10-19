@@ -69,7 +69,7 @@ exts="$(grep -v '^#' "$here/php-extensions.txt" | tr -d ' ' | { grep -v '^$' || 
 shared="pcov"
 if $preview; then
   # Extensions that don't build against the preview yet stay out of it.
-  skip="$(sed 's/#.*//' "$here/php-extensions-preview-skip.txt" | tr -d ' ' | { grep -v '^$' || true; })"
+  skip="$(sed 's/#.*//' "$here/php-extensions-preview-skip.txt" | tr -d ' \t' | { grep -v '^$' || true; })"
   for e in $skip; do
     exts="$(tr ',' '\n' <<<"$exts" | { grep -vx "$e" || true; } | paste -sd, -)"
     if [ "$e" = pcov ]; then shared=""; fi

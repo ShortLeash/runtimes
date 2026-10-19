@@ -9,14 +9,15 @@
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet, and the newest pre-release of each PHP preview minor
-# (PHP_PREVIEW_MINORS), from a tarball checked against php.net's SHA-256. Run it by hand (Actions › Build › Run workflow) for a new
-# Ruby, pgvector, memcached, MariaDB or PostGIS release, or to rebuild
-# everything. libwebrtc builds only when asked for by name (what: libwebrtc);
-# it takes an hour or two. The voice engines build only when asked for by
-# name too (what: voice-engines), after their pins change. So do the PHP
-# extensions for Windows (what: php-ext-windows), which build only the files
-# not released yet. Only runs on main attach files to releases; a run on
-# another branch only builds.
+# (PHP_PREVIEW_MINORS), from a tarball checked against php.net's SHA-256. Run
+# it by hand (Actions › Build › Run workflow) for a new Ruby, pgvector,
+# memcached, MariaDB or PostGIS release, or to rebuild everything. libwebrtc
+# builds only when asked for by name (what: libwebrtc); it takes an hour or
+# two. The voice engines build only when asked for by name too (what:
+# voice-engines), after their pins change. So do the PHP extensions for
+# Windows (what: php-ext-windows), which build only the files not released
+# yet. Only runs on main attach files to releases; a run on another branch
+# only builds.
 
 name: Build
 
