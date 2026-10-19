@@ -150,13 +150,14 @@ PostGIS for macOS and Windows x64, built without raster support (no GDAL), for e
 | proj.db | PROJ's data, including the EPSG dataset under the EPSG terms of use |
 | json-c | MIT |
 | protobuf-c | BSD-2-Clause |
+| PostgreSQL's headers' inline code (and on Windows libpgport and libpgcommon) | PostgreSQL License |
 | libxml2 (Windows) | MIT |
 | SQLite (Windows) | Public domain |
 | GCC's runtime, libgcc and libstdc++ (Windows) | GPL-3.0-or-later with the GCC Runtime Library Exception |
 | winpthreads (Windows) | MIT, with parts under BSD-3-Clause |
 | mingw-w64 runtime (Windows start-up code and libmingwex) | ZPL-2.1-style mingw-w64 licence, with parts under other permissive licences listed in its `COPYING.MinGW-w64-runtime.txt` |
 
-GEOS, PROJ, json-c and protobuf-c (and on Windows libxml2 and SQLite) are linked statically into the PostGIS modules. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c, protobuf-c, libxml2 and SQLite tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis-windows.sh`, `scripts/postgis.env`), which rebuild against changed copies. A build is never released without it, nor with a sources file that lacks the script that made it. GCC's runtime, winpthreads and the mingw-w64 runtime are the compiler's own libraries (the GPL's System Libraries); their sources are MSYS2's, at the versions in `doc/toolchain.txt`.
+GEOS, PROJ, json-c and protobuf-c (and on Windows libxml2 and SQLite) are linked statically into the PostGIS modules. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c, protobuf-c, libxml2 and SQLite tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis-windows.sh`, `scripts/postgis.env`), which rebuild against changed copies. A build is never released without it, nor with a sources file that lacks the script that made it (or, for Windows, the libxml2 and SQLite tarballs). Each archive's `doc/postgresql/COPYRIGHT` is PostgreSQL's licence. GCC's runtime, winpthreads and the mingw-w64 runtime are the compiler's own libraries (the GPL's System Libraries); their sources are MSYS2's, at the versions in `doc/toolchain.txt`.
 
 ## libwebrtc
 
