@@ -161,6 +161,7 @@ foreach ($ext in $wanted) {
 # 4. Build each extension in its own checkout, with the SDK's tools on PATH
 # the way phpsdk_setvars.bat puts them there.
 $pathBefore = $env:PATH
+$clBefore = $env:CL
 $env:PHP_SDK_ROOT_PATH = $sdk
 $env:PHP_SDK_BIN_PATH = "$sdk\bin"
 $env:PHP_SDK_MSYS2_PATH = "$sdk\msys2\usr\bin"
@@ -188,14 +189,14 @@ try {
       # stops at a line of 131071 characters (grpc has about 1,500 objects,
       # each with its full path). Put one on each line.
       Get-ChildItem "$dir\x64\Release\resp\*.txt" -ErrorAction SilentlyContinue | ForEach-Object {
-        $objs = (Get-Content -Raw $_.FullName).Split([char[]]" `t`r`n", [StringSplitOptions]::RemoveEmptyEntries)
+        $objs = [regex]::Matches((Get-Content -Raw $_.FullName), '"[^"]*"|\S+') | ForEach-Object { $_.Value }
         Set-Content -Encoding ascii $_.FullName $objs
       }
       # <EXT>_CL: compiler options the extension needs that its config.w32
       # doesn't pass; cl reads them from the CL variable.
-      $env:CL = Pin $ext 'cl'
+      $env:CL = "$clBefore $(Pin $ext 'cl')".Trim()
       nmake /NOLOGO
-    } finally { Pop-Location; Remove-Item Env:CL -ErrorAction SilentlyContinue }
+    } finally { Pop-Location; $env:CL = $clBefore }
     if (-not (Test-Path "$dir\x64\Release\php_$ext.dll")) {
       $found = (Get-ChildItem -Recurse -Filter 'php_*.dll' $dir | ForEach-Object { $_.FullName }) -join ', '
       throw "${ext}: nmake made no x64\Release\php_$ext.dll (found: $found)"
