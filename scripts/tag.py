@@ -6,7 +6,8 @@ Usage: python3 scripts/tag.py <outputs folder>
 A MariaDB or PostGIS build is released only with its sources: when
 <name>-<version>-sources.tar.gz isn't among the outputs, the build is left
 out, named on stderr, and the script exits 1 after printing the rest, so the
-other builds still release and the run fails.
+other builds still release and the run fails. Sources files print first, so a
+failed upload can't leave a build on its release without them.
 
 A release holds one version of one thing for every platform: php-8.4.26 has
 the CLI and php-fpm for both Mac architectures, ruby-3.4.7 has macOS and
@@ -132,7 +133,8 @@ def releases(names: list) -> tuple:
 def main() -> None:
     paths = {p.name: p for p in sorted(pathlib.Path(sys.argv[1]).rglob("*")) if p.is_file()}
     released, withheld = releases(sorted(paths))
-    for release, name in released:
+    # Sources first, so a failed upload can't leave a build without them.
+    for release, name in sorted(released, key=lambda r: sources_for(r[1]) is not None):
         print(release, paths[name])
     for name in withheld:
         print(f"{name}: not released, {sources_for(name)} isn't among the outputs", file=sys.stderr)

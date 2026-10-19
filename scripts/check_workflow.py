@@ -43,7 +43,9 @@ def strings(value):
 
 
 def counts_job(condition: str, job: str) -> bool:
-    """Whether a release if: releases a run in which only this job ran.
+    """Whether a release if: releases a run in which only this job ran. A
+    heuristic: it looks for needs.<job>.result != 'skipped' anywhere in the
+    expression, which fits its one OR of such clauses.
 
     >>> counts_job("needs.php.result != 'skipped' || needs['voice-engines'].result != 'skipped'", "voice-engines")
     True

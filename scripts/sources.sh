@@ -42,7 +42,7 @@ was_fetched_with() { awk -v f="$1" '$2 == f {print $1}' "$work/checked" 2>/dev/n
 # each copied and checked against the SHA-256 it was fetched with, and
 # scripts/lib.sh, scripts/SCRIPT.sh and scripts/SCRIPT.env.
 pack() {
-  local name="$1" script="$2" f got want dir="$work/pack-$1"
+  local name="$1" script="$2" f got want listing dir="$work/pack-$1"
   shift 2
   mkdir -p "$dir/scripts"
   for f in "$@"; do
@@ -58,6 +58,12 @@ pack() {
   (cd "$dir" && shasum -a 256 "$@" scripts/* >SHA256SUMS)
   # COPYFILE_DISABLE: macOS's tar would add its extended attributes.
   COPYFILE_DISABLE=1 tar -C "$dir" -czf "$out/$name-sources.tar.gz" SHA256SUMS "$@" scripts
+  rm -rf "$dir"
+  # The tarball lists every input and script.
+  listing="$(tar -tzf "$out/$name-sources.tar.gz")"
+  for f in SHA256SUMS "$@" scripts/lib.sh "scripts/$script.sh" "scripts/$script.env"; do
+    grep -qxF "$f" <<<"$listing" || { echo "$name-sources.tar.gz has no $f" >&2; exit 1; }
+  done
   echo "Wrote $out/$name-sources.tar.gz"
 }
 
