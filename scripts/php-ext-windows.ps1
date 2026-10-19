@@ -1,6 +1,7 @@
 # Builds PHP extensions for windows.php.net's official PHP (non-thread-safe,
 # x64) for one PHP minor, at the pins in php-ext-windows.env, against that
-# minor's devel pack, and checks each one loads into the official PHP. Run
+# minor's devel pack, and checks each one loads into the official PHP. Sources
+# are a git tag at a pinned commit, or a PECL tarball at a pinned SHA-256. Run
 # from a Visual Studio developer prompt whose compiler matches the minor's
 # (cl 19.20 to 19.29 for vs16, 19.30 to 19.49 for vs17).
 #
@@ -49,8 +50,12 @@ if (-not $wanted) { throw 'No extensions named; pass -Exts "apcu redis"' }
 foreach ($ext in $wanted) {
   if ($known -notcontains $ext) { throw "${ext}: not in PHP_EXT_WINDOWS in php-ext-windows.env" }
   if ((Pin $ext 'skip').Split(' ') -contains $Minor) { throw "${ext}: php-ext-windows.env skips PHP $Minor" }
-  if ((Pin $ext 'source') -ne 'git') { throw "${ext}: source '$(Pin $ext 'source')' isn't one this script builds" }
+  if (@('git', 'pecl') -notcontains (Pin $ext 'source')) { throw "${ext}: source '$(Pin $ext 'source')' isn't one this script builds" }
   if (-not (Pin $ext 'version')) { throw "${ext}: no version pinned for PHP $Minor in php-ext-windows.env" }
+  $need = if ((Pin $ext 'source') -eq 'git') { @('repo', 'tag', 'commit') } else { @('sha256') }
+  foreach ($key in $need) {
+    if (-not (Pin $ext $key)) { throw "${ext}: no $key pinned for PHP $Minor in php-ext-windows.env" }
+  }
 }
 
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
@@ -110,7 +115,22 @@ git clone --quiet --depth 1 --branch $sdkTag https://github.com/php/php-sdk-bina
 if ((git -C sdk rev-parse HEAD) -ne $sdkCommit) { throw "php-sdk-binary-tools $sdkTag isn't commit $sdkCommit" }
 $sdk = "$work\sdk"
 
+# Each extension's source in src-<ext>: a git tag at its pinned commit, or a
+# PECL tarball at its pinned SHA-256 (PECL publishes no checksum).
+function Pecl-Url([string]$ext) { "https://pecl.php.net/get/$ext-$(Pin $ext 'version').tgz" }
 foreach ($ext in $wanted) {
+  if ((Pin $ext 'source') -eq 'pecl') {
+    $version = Pin $ext 'version'; $want = (Pin $ext 'sha256').ToLower()
+    $tgz = Join-Path $work "$ext-$version.tgz"
+    Invoke-WebRequest -OutFile $tgz (Pecl-Url $ext)
+    $got = Sha256 $tgz
+    if ($got -ne $want) { throw "${ext}: $ext-$version.tgz has SHA-256 $got, not the pinned $want" }
+    New-Item -ItemType Directory -Path "$work\pecl-$ext" | Out-Null
+    tar -xzf $tgz -C "$work\pecl-$ext"
+    if (-not (Test-Path "$work\pecl-$ext\$ext-$version\config.w32")) { throw "${ext}: $ext-$version.tgz has no $ext-$version\config.w32" }
+    Move-Item "$work\pecl-$ext\$ext-$version" "$work\src-$ext"
+    continue
+  }
   $repo = Pin $ext 'repo'; $tag = Pin $ext 'tag'; $commit = Pin $ext 'commit'
   git clone --quiet --depth 1 --branch $tag "https://github.com/$repo.git" "src-$ext"
   if ((git -C "src-$ext" rev-parse HEAD) -ne $commit) { throw "${ext}: $repo $tag isn't commit $commit" }
@@ -179,12 +199,17 @@ foreach ($ext in $wanted) {
   # 6. The licence and BUILDINFO.json beside the DLL.
   $licence = @('LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING') |
     ForEach-Object { "$dir\$_"; "$src\$_" } | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if (-not $licence) { throw "${ext}: no LICENSE or COPYING in $(Pin $ext 'repo') $(Pin $ext 'tag')" }
+  if (-not $licence) { throw "${ext}: no LICENSE or COPYING in its source" }
   Copy-Item $licence "$stage\licenses\php_$ext\LICENSE"
+  $source = if ((Pin $ext 'source') -eq 'pecl') {
+    [ordered]@{ url = (Pecl-Url $ext); sha256 = (Pin $ext 'sha256').ToLower(); subdir = $sub }
+  } else {
+    [ordered]@{ repo = "https://github.com/$(Pin $ext 'repo')"; tag = (Pin $ext 'tag'); commit = (Pin $ext 'commit'); subdir = $sub }
+  }
   Write-BuildInfo "$stage\licenses\php_$ext\BUILDINFO.json" ([ordered]@{
     extension = $ext
     version = $version
-    source = [ordered]@{ repo = "https://github.com/$(Pin $ext 'repo')"; tag = (Pin $ext 'tag'); commit = (Pin $ext 'commit'); subdir = $sub }
+    source = $source
     php = [ordered]@{ version = $full; build = "nts-$compiler-x64"; zip = $phpZip.path; zip_sha256 = $phpZip.sha256.ToLower() }
     devel_pack = [ordered]@{ file = $develPack.path; sha256 = $develPack.sha256.ToLower() }
     php_sdk = [ordered]@{ tag = $sdkTag; commit = $sdkCommit }
