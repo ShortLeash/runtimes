@@ -92,8 +92,11 @@ if [ "$published" != "$LIBXML2_SHA256" ]; then
   exit 1
 fi
 fetch_checked "https://sqlite.org/$SQLITE_TARBALL" "$SQLITE_SHA256" sqlite.tar.gz
+# MSYS2's tar makes a symlink as a copy of its target, so one whose target
+# comes later in the tarball (json-c's tests) fails the first time and is
+# copied the second.
 for t in "$pgtar" "$tarball" geos.tar.bz2 proj.tar.gz json-c.tar.gz protobuf-c.tar.gz "$xml" sqlite.tar.gz; do
-  tar -xf "$t"
+  tar -xf "$t" 2>/dev/null || tar -xf "$t"
 done
 sqlite_src="$(basename "$SQLITE_TARBALL" .tar.gz)"
 
@@ -283,17 +286,17 @@ cp "libxml2-$LIBXML2_VERSION/Copyright" "$stage/doc/libxml2/"
 } >"$stage/doc/sqlite/NOTICE"
 grep -q 'disclaims copyright' "$stage/doc/sqlite/NOTICE" || { echo "SQLite's header has no public domain notice" >&2; exit 1; }
 # shellcheck disable=SC2086 # one package per word
-for p in $runtime_pkgs mingw-w64-ucrt-x86_64-gcc-libs; do
+for p in $runtime_pkgs; do
   pacman -Qql "$p" | grep '/share/licenses/.*[^/]$' | while read -r f; do
     mkdir -p "$stage/doc/mingw-w64/${p#mingw-w64-ucrt-x86_64-}"
     cp "$f" "$stage/doc/mingw-w64/${p#mingw-w64-ucrt-x86_64-}/"
   done
 done
-grep -rqs 'GCC RUNTIME LIBRARY EXCEPTION' "$stage/doc/mingw-w64" ||
-  { echo "No GCC runtime library exception among the MSYS2 licences:" >&2; find "$stage/doc/mingw-w64" >&2; exit 1; }
-for want in winpthread crt; do
-  [ -n "$(find "$stage/doc/mingw-w64" -path "*$want*" -type f -print -quit)" ] ||
-    { echo "No $want licence among the MSYS2 licences:" >&2; find "$stage/doc/mingw-w64" >&2; exit 1; }
+# GCC's runtime exception, mingw-w64's notices for programs linked with its
+# runtime, and winpthreads' licence.
+for want in 'GCC RUNTIME LIBRARY EXCEPTION' 'statically linked against the MinGW-w64 runtime' 'Lockless Inc'; do
+  grep -rqs "$want" "$stage/doc/mingw-w64" ||
+    { echo "No MSYS2 licence says '$want':" >&2; find "$stage/doc/mingw-w64" >&2; exit 1; }
 done
 
 archive="$out/postgis-$POSTGIS_VERSION-pg$major-windows-x86_64.zip"
