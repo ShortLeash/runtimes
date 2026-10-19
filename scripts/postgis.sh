@@ -160,8 +160,12 @@ done
 cp "$prefix/share/proj/proj.db" "$stage/proj/"
 # The licences travel with the modules, from the checked source tarballs.
 # SQLite isn't among them: it's macOS's own library, not linked in.
-licences=(postgis/COPYING postgis/LICENSE.TXT geos/COPYING proj/COPYING json-c/COPYING protobuf-c/LICENSE)
-mkdir -p "$stage/doc"/{postgis,geos,proj,json-c,protobuf-c}
+# Postgres's COPYRIGHT comes from the theseus build it was built against:
+# its headers' inline code is in the modules.
+licences=(postgis/COPYING postgis/LICENSE.TXT geos/COPYING proj/COPYING json-c/COPYING protobuf-c/LICENSE
+  postgresql/COPYRIGHT)
+mkdir -p "$stage/doc"/{postgis,geos,proj,json-c,protobuf-c,postgresql}
+cp "$pgroot/COPYRIGHT" "$stage/doc/postgresql/"
 cp "postgis-$POSTGIS_VERSION/COPYING" "postgis-$POSTGIS_VERSION/LICENSE.TXT" "$stage/doc/postgis/"
 cp "geos-$GEOS_VERSION/COPYING" "$stage/doc/geos/"
 cp "proj-$PROJ_VERSION/COPYING" "$stage/doc/proj/"
@@ -256,4 +260,5 @@ for f in "${licences[@]}"; do
 done
 grep -q 'GNU GENERAL PUBLIC LICENSE' "$stage/doc/postgis/COPYING" || { echo "doc/postgis/COPYING isn't the GPL" >&2; exit 1; }
 grep -q 'GNU LESSER GENERAL PUBLIC LICENSE' "$stage/doc/geos/COPYING" || { echo "doc/geos/COPYING isn't the LGPL" >&2; exit 1; }
+grep -q 'PostgreSQL Global Development Group' "$stage/doc/postgresql/COPYRIGHT" || { echo "doc/postgresql/COPYRIGHT isn't Postgres's licence" >&2; exit 1; }
 echo "Built PostGIS $POSTGIS_VERSION for Postgres $pg on macos-$arch"
