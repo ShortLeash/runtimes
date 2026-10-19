@@ -68,6 +68,21 @@ Built against windows.php.net's devel pack for each PHP version, and load-tested
 | pcov | PHP License 3.01 | [krakjoe/pcov](https://github.com/krakjoe/pcov) |
 | redis | PHP License 3.01 | [phpredis/phpredis](https://github.com/phpredis/phpredis) |
 | opentelemetry | Apache-2.0 | [open-telemetry/opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) |
+| grpc | Apache-2.0 | [PECL's grpc tarball](https://pecl.php.net/package/grpc) |
+
+grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL tarball carries in `third_party/`. Its own `LICENSE` is in each zip. It doesn't use c-ares on Windows.
+
+| Library | Licence |
+|---|---|
+| gRPC core | Apache-2.0 |
+| abseil-cpp | Apache-2.0 |
+| BoringSSL | Apache-2.0; its fiat-crypto parts MIT, Apache-2.0 or BSD-1-Clause |
+| re2 | BSD-3-Clause |
+| upb | BSD-3-Clause |
+| address_sorting | BSD-3-Clause |
+| utf8_range | MIT |
+| xxHash | BSD-2-Clause |
+| zlib | Zlib |
 
 ## Ruby
 
