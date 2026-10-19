@@ -8,7 +8,8 @@
 # built from (the sources job).
 #
 # Every day it builds each PHP patch release php.net has published that isn't
-# released here yet. Run it by hand (Actions › Build › Run workflow) for a new
+# released here yet, and the newest pre-release of each PHP preview minor
+# (PHP_PREVIEW_MINORS), from a tarball checked against php.net's SHA-256. Run it by hand (Actions › Build › Run workflow) for a new
 # Ruby, pgvector, memcached, MariaDB or PostGIS release, or to rebuild
 # everything. libwebrtc builds only when asked for by name (what: libwebrtc);
 # it takes an hour or two. The voice engines build only when asked for by
@@ -52,6 +53,10 @@ env:
   PHP_MINORS: "8.2 8.3 8.4 8.5"
   # PHP versions to build Windows extensions for (php-ext-windows).
   PHP_WINDOWS_MINORS: "8.0 8.1 8.2 8.3 8.4 8.5"
+  # PHP minors php.net hasn't released yet: each builds its newest
+  # pre-release (alpha, beta or RC) as a preview. When a minor is released,
+  # move it to PHP_MINORS.
+  PHP_PREVIEW_MINORS: "8.6"
 
 # Runners (actions/runner-images): macos-15 is Apple silicon; macos-15-intel
 # is x86_64, the last Intel image GitHub provides (until about August 2027).
@@ -117,18 +122,23 @@ jobs:
       fail-fast: false
       matrix:
         runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
+        # {"version"} objects; a preview's also has "url" and "sha256", for
+        # php.sh to check php.net's tarball against.
         php: ${{ fromJSON(needs.plan.outputs.php) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
-      - name: Build PHP ${{ matrix.php }}
+      - name: Build PHP ${{ matrix.php.version }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/php.sh ${{ matrix.php }} out
+          PHP_BUILD_VERSION: ${{ matrix.php.version }}
+          PHP_SOURCE_URL: ${{ matrix.php.url }}
+          PHP_SOURCE_SHA256: ${{ matrix.php.sha256 }}
+        run: scripts/php.sh "$PHP_BUILD_VERSION" out
       - uses: actions/upload-artifact@v7
         with:
-          name: php-${{ matrix.php }}-${{ matrix.runner }}
+          name: php-${{ matrix.php.version }}-${{ matrix.runner }}
           path: out/*
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
@@ -512,7 +522,10 @@ jobs:
           python3 scripts/tag.py outputs >"$RUNNER_TEMP/releases.txt" || status=$?
           while read -r tag file; do
             if ! gh release view "$tag" >/dev/null 2>&1; then
-              gh release create "$tag" --title "$tag" --latest=false \
+              # A PHP preview (php-8.6.0RC3) is marked as a pre-release.
+              pre=()
+              if [[ "$tag" =~ ^php-[0-9.]+(alpha|beta|RC)[0-9]+$ ]]; then pre=(--prerelease); fi
+              gh release create "$tag" --title "$tag" --latest=false ${pre[@]+"${pre[@]}"} \
                 --notes "Built by $run_url. Verify a file with: gh attestation verify <file> --repo $GITHUB_REPOSITORY. Licences: see LICENSES.md."
             fi
             # A rebuild of the same version replaces its files.

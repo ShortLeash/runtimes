@@ -9,7 +9,12 @@ for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
 exact release (8.4.26), looked up once here, so every runner builds the same
-release rather than asking php.net itself and maybe getting another answer. PLATFORM limits a run by hand to one
+release rather than asking php.net itself and maybe getting another answer.
+PHP_PREVIEW_MINORS (space-separated, "8.6") names minors php.net hasn't
+released yet: each builds its newest pre-release (8.6.0RC3), with the
+tarball's URL and php.net's SHA-256 for php.sh to check, on the same rules.
+The php output is a list of {"version"} objects, previews adding "url" and
+"sha256". PLATFORM limits a run by hand to one
 platform's runners, so a test on a branch doesn't take every Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
@@ -22,6 +27,7 @@ also collects its GPL sources, once per run on Linux (sources).
 import json
 import os
 import pathlib
+import re
 import sys
 import urllib.request
 
@@ -30,6 +36,10 @@ from buildinfo import parse_env
 ARCHES = ("aarch64", "x86_64")
 MAC_RUNNERS = ["macos-15", "macos-15-intel"]
 WINDOWS_RUNNERS = ["windows-latest"]
+# php.net's pre-releases: alpha, beta and release candidates (8.6.0RC3).
+PRE_RELEASE = r"(?:alpha|beta|RC)\d+"
+PRE_RELEASES = "https://www.php.net/pre-release-builds.php?format=json"
+PHP_DOWNLOADS = "https://downloads.php.net/"
 
 
 def runners(platform: str) -> tuple:
@@ -215,6 +225,87 @@ def php_ext_windows_targets(what: str, platform: str, published: set, pins: dict
     return out
 
 
+def latest_preview(pre_releases: dict, minor: str):
+    """The newest pre-release of a minor that isn't out yet, from php.net's
+    pre-release-builds.php?format=json (keyed by the coming release), as
+    {"version", "url", "sha256"} for its .tar.xz, or None. It counts only
+    when its key is <minor>.0, it names a version, and its .tar.xz is on
+    https://downloads.php.net/ with a 64-hex SHA-256: php.sh checks the
+    tarball against that SHA-256 before building it.
+
+    >>> data = {"8.5.12": {"active": True, "release": {"version": "8.5.12RC1", "enabled": True,
+    ...           "files": {"xz": {"path": "https://downloads.php.net/~a/php-8.5.12RC1.tar.xz", "sha256": "aa" * 32}}}},
+    ...         "8.6.0": {"active": True, "release": {"version": "8.6.0RC3",
+    ...           "files": {"xz": {"path": "https://downloads.php.net/~b/php-8.6.0RC3.tar.xz", "sha256": "bb" * 32}}}},
+    ...         "reported": ["8.6.0RC3"]}
+    >>> latest_preview(data, "8.6")["version"]
+    '8.6.0RC3'
+    >>> latest_preview(data, "8.6")["url"], latest_preview(data, "8.6")["sha256"] == "bb" * 32
+    ('https://downloads.php.net/~b/php-8.6.0RC3.tar.xz', True)
+    >>> latest_preview(data, "8.5") is None   # a patch RC of a released minor isn't a preview
+    True
+    >>> latest_preview({"8.6.0": {"active": True, "release": {"enabled": False}}}, "8.6") is None
+    True
+    >>> latest_preview(data, "8.7") is None
+    True
+    >>> import copy
+    >>> off = copy.deepcopy(data); off["8.6.0"]["release"]["enabled"] = False
+    >>> latest_preview(off, "8.6") is None
+    True
+    >>> elsewhere = copy.deepcopy(data); elsewhere["8.6.0"]["release"]["files"]["xz"]["path"] = "https://example.com/php-8.6.0RC3.tar.xz"
+    >>> latest_preview(elsewhere, "8.6") is None
+    True
+    >>> short = copy.deepcopy(data); short["8.6.0"]["release"]["files"]["xz"]["sha256"] = "bb"
+    >>> latest_preview(short, "8.6") is None
+    True
+    >>> odd = copy.deepcopy(data); odd["8.6.0"]["release"]["version"] = "8.6.0RC3; rm -rf /"
+    >>> latest_preview(odd, "8.6") is None
+    True
+    """
+    entry = pre_releases.get(f"{minor}.0")
+    if not isinstance(entry, dict) or entry.get("active") is False:
+        return None
+    release = entry.get("release") or {}
+    version = release.get("version") or ""
+    if release.get("enabled") is False or not re.fullmatch(rf"{re.escape(minor)}\.0{PRE_RELEASE}", version):
+        return None
+    xz = (release.get("files") or {}).get("xz") or {}
+    url, sha256 = xz.get("path") or "", xz.get("sha256") or ""
+    if not url.startswith(PHP_DOWNLOADS) or not url.endswith(f"/php-{version}.tar.xz"):
+        return None
+    if not re.fullmatch(r"[0-9a-f]{64}", sha256):
+        return None
+    return {"version": version, "url": url, "sha256": sha256}
+
+
+def php_matrix(what: str, published: set, latest: dict, previews: dict) -> list:
+    """The PHP builds a run makes, one {"version"} object each; a preview's
+    also names php.net's tarball and its SHA-256 ("url", "sha256"). A
+    scheduled run builds only the releases and previews not published for
+    every Mac architecture yet; "all" and "php" build every one.
+
+    >>> latest = {"8.4": "8.4.26", "8.5": "8.5.11"}
+    >>> previews = {"8.6": {"version": "8.6.0RC3", "url": "https://downloads.php.net/~b/php-8.6.0RC3.tar.xz", "sha256": "bb" * 32}}
+    >>> [p["version"] for p in php_matrix("php", set(), latest, previews)]
+    ['8.4.26', '8.5.11', '8.6.0RC3']
+    >>> php_matrix("all", set(), latest, {})
+    [{'version': '8.4.26'}, {'version': '8.5.11'}]
+    >>> php_matrix("scheduled", set(php_assets("8.4.26") + php_assets("8.5.11")), latest, previews) == [previews["8.6"]]
+    True
+    >>> php_matrix("scheduled", set(php_assets("8.4.26") + php_assets("8.6.0RC3")), latest, previews)
+    [{'version': '8.5.11'}]
+    >>> php_matrix("ruby", set(), latest, previews)
+    []
+    """
+    if what == "scheduled":
+        php = [{"version": latest[m]} for m in stale(published, latest)]
+        php += [previews[m] for m in stale(published, {m: p["version"] for m, p in previews.items()})]
+        return php
+    if what in ("all", "php"):
+        return [{"version": v} for v in latest.values()] + list(previews.values())
+    return []
+
+
 def php_assets(version: str) -> list:
     """The files a complete PHP release has.
 
@@ -230,6 +321,10 @@ def stale(published: set, latest: dict) -> list:
     >>> have = set(php_assets("8.4.26") + php_assets("8.3.30")[:2])
     >>> stale(have, {"8.4": "8.4.26", "8.5": "8.5.11", "8.3": "8.3.30"})
     ['8.5', '8.3']
+    >>> stale(have | set(php_assets("8.6.0RC2")), {"8.4": "8.4.26", "8.6": "8.6.0RC3"})
+    ['8.6']
+    >>> stale(set(php_assets("8.6.0RC3")), {"8.6": "8.6.0RC3"})
+    []
     """
     return [minor for minor, version in latest.items() if not set(php_assets(version)) <= published]
 
@@ -244,19 +339,24 @@ def latest_releases(minors: list) -> dict:
     return out
 
 
+def latest_previews(minors: list) -> dict:
+    """The newest pre-release of each preview minor that has one, from php.net."""
+    with urllib.request.urlopen(PRE_RELEASES, timeout=30) as r:
+        data = json.load(r)
+    return {m: p for m in minors if (p := latest_preview(data, m)) is not None}
+
+
 def main() -> None:
     what, published, minors = sys.argv[1], pathlib.Path(sys.argv[2]), sys.argv[3:]
     have = set(published.read_text().split()) if published.is_file() else set()
     platform = os.environ.get("PLATFORM") or "all"
-    if what == "scheduled":
-        latest = latest_releases(minors)
-        # The exact release, so the build is the one php.net lists.
-        php = [latest[m] for m in stale(have, latest)]
-    else:
-        php = list(latest_releases(minors).values()) if what in ("all", "php") else []
     mac, every = runners(platform)
-    if not mac:
-        php = []
+    # The exact release, so every runner builds the one php.net lists.
+    builds_php = bool(mac) and what in ("scheduled", "all", "php")
+    latest = latest_releases(minors) if builds_php else {}
+    preview_minors = os.environ.get("PHP_PREVIEW_MINORS", "").split()
+    previews = latest_previews(preview_minors) if builds_php and preview_minors else {}
+    php = php_matrix(what, have, latest, previews)
     pins = parse_env((pathlib.Path(__file__).resolve().parent / "php-ext-windows.env").read_text(encoding="utf-8"))
     windows_minors = os.environ.get("PHP_WINDOWS_MINORS", "8.0 8.1 8.2 8.3 8.4 8.5").split()
     print(f"php={json.dumps(php)}")
