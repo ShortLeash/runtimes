@@ -134,7 +134,8 @@ MariaDB Server and its client programs for macOS. The server uses its bundled wo
 | zlib, bundled | Zlib |
 | PCRE2, bundled | BSD-3-Clause (with the PCRE2 exception) |
 | fmt, bundled | MIT |
-| GnuTLS, linked statically into Connector/C, with its included libtasn1 and libunistring copies | LGPL-2.1-or-later |
+| GnuTLS, linked statically into Connector/C, with its included libtasn1 | LGPL-2.1-or-later |
+| libunistring, GnuTLS's included copy (Unicode normalisation and character classes), linked statically into Connector/C | LGPL-2.1-or-later for some files; LGPL-3.0-or-later or GPL-2.0-or-later for others, used under GPL-2.0-or-later |
 | Nettle and its mini-gmp, linked statically into Connector/C | LGPL-3.0-or-later or GPL-2.0-or-later, used under GPL-2.0-or-later |
 
 ## PostGIS
