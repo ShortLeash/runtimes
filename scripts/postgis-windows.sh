@@ -219,18 +219,35 @@ pg_config="$pgmingw/bin/pg_config.exe"
 includedir_server="$("$pg_config" --includedir-server)"
 
 # The modules load into the MSVC build, so its ABI must be what these headers
-# describe: sizes, alignments and block sizes the same in both pg_config.h.
+# describe. The key defines must be in both pg_config.h with the same value:
+# the release, alignment, block size and pointer and long sizes (float8 is
+# passed by value when SIZEOF_VOID_P is 8, by pg_config_manual.h). Every
+# other size and alignment the MSVC build defines must match too, and
+# pg_config_manual.h (NAMEDATALEN, INDEX_MAX_KEYS, FUNC_MAX_ARGS) must be
+# the source's, unchanged.
 abi() { # abi FILE: the defines a module's structs depend on, sorted
   grep -E '^#define (ALIGNOF_[A-Z0-9_]+|SIZEOF_[A-Z0-9_]+|MAXIMUM_ALIGNOF|BLCKSZ|XLOG_BLCKSZ|RELSEG_SIZE|USE_FLOAT8_BYVAL|FLOAT8PASSBYVAL|PG_VERSION_NUM) ' "$1" |
     grep -v INT128 | tr -d '\r' | awk '{print $2, $3}' | sort
 }
 msvc_abi="$(abi "$pgroot/include/server/pg_config.h")"
-[ -n "$msvc_abi" ] || { echo "The MSVC Postgres's pg_config.h has none of the defines checked" >&2; exit 1; }
 gcc_abi="$(abi "$includedir_server/pg_config.h")"
+for key in PG_VERSION_NUM MAXIMUM_ALIGNOF BLCKSZ SIZEOF_VOID_P SIZEOF_SIZE_T SIZEOF_LONG ALIGNOF_DOUBLE; do
+  msvc="$(awk -v k="$key" '$1 == k {print $2}' <<<"$msvc_abi")"
+  gcc="$(awk -v k="$key" '$1 == k {print $2}' <<<"$gcc_abi")"
+  if [ -z "$msvc" ] || [ "$msvc" != "$gcc" ]; then
+    echo "$key is '${msvc:-not defined}' in the MSVC Postgres's pg_config.h and '${gcc:-not defined}' in GCC's" >&2
+    exit 1
+  fi
+done
 missing="$(comm -23 <(echo "$msvc_abi") <(echo "$gcc_abi"))"
 if [ -n "$missing" ]; then
   echo "Postgres $pgsrc_version configured for GCC differs from the MSVC build in:" >&2
   echo "$missing" >&2
+  exit 1
+fi
+if ! diff <(tr -d '\r' <"$pgroot/include/server/pg_config_manual.h") \
+  <(tr -d '\r' <"postgresql-$pgsrc_version/src/include/pg_config_manual.h") >&2; then
+  echo "The MSVC Postgres's pg_config_manual.h isn't Postgres $pgsrc_version's" >&2
   exit 1
 fi
 
