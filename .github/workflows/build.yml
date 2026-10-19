@@ -396,23 +396,32 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
-      # The action installs MSYS2 from an installer it pins by SHA-256, and
+      # The runner image's MSYS2 (C:\msys64), brought up to date in two
+      # rounds as MSYS2 asks (its core first), then the UCRT64 toolchain.
       # pacman checks every package's signature against MSYS2's keyring.
       # Only the toolchain comes from MSYS2: the libraries linked into
       # PostGIS build from the checked sources in scripts/postgis.env.
-      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            make perl python bison flex bzip2 xz unzip zip
-          pacboy: >-
-            gcc:p tools-git:p cmake:p ninja:p pkgconf:p libiconv:p protobuf-c:p
-      - name: Build PostGIS for Postgres ${{ matrix.postgres }}
-        shell: msys2 {0}
+      - name: Update MSYS2
+        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
         env:
+          MSYSTEM: UCRT64
+        run: pacman -Syuu --noconfirm
+      - name: Install MSYS2's UCRT64 toolchain
+        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
+        env:
+          MSYSTEM: UCRT64
+        run: |
+          pacman -Syuu --noconfirm
+          pacman -S --noconfirm --needed make perl python bison flex bzip2 xz unzip zip \
+            mingw-w64-ucrt-x86_64-{gcc,tools-git,cmake,ninja,pkgconf,libiconv,protobuf-c}
+      - name: Build PostGIS for Postgres ${{ matrix.postgres }}
+        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
+        env:
+          MSYSTEM: UCRT64
+          # Keeps the login shell in the checkout.
+          CHERE_INVOKING: 1
           GITHUB_TOKEN: ${{ github.token }}
-        run: scripts/postgis-windows.sh ${{ matrix.postgres }} out "$(cygpath -u '${{ runner.temp }}')/postgis"
+        run: bash scripts/postgis-windows.sh ${{ matrix.postgres }} out "$(cygpath -u '${{ runner.temp }}')/postgis"
       # dumpbin for the smoke test's import check.
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Check PostGIS in Postgres ${{ matrix.postgres }}
