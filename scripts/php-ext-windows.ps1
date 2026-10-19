@@ -132,7 +132,10 @@ try {
     try {
       & $phpize
       $configure = @((Pin $ext 'configure').Split(' ', [StringSplitOptions]::RemoveEmptyEntries)) + '--enable-debug-pack=no'
-      & .\configure.bat @configure
+      & .\configure.bat @configure | Tee-Object -Variable configured
+      # configure.bat only warns about an option it doesn't know, and then
+      # builds nothing for it.
+      if (@($configured) -match 'argument is invalid') { throw "${ext}: configure.bat doesn't know $($configure -join ' ')" }
       nmake /NOLOGO
     } finally { Pop-Location }
     if (-not (Test-Path "$dir\x64\Release\php_$ext.dll")) {
