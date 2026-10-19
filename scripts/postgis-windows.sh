@@ -247,26 +247,32 @@ grep -q 'DevKit: the MSVC server longjmps' "$c_h" || { echo "Couldn't switch c.h
 ) >>"$log" 2>&1 || failed "postgres.exe's import library"
 
 # --- PostGIS ------------------------------------------------------------------
-# GEOS's and PROJ's static libraries need the C++ runtime (and its threads)
-# and SQLite, and
-# Windows' shell32 and ole32 (PROJ) and bcrypt (libxml2, json-c). They go in
-# LDFLAGS, not LIBS: configure links its checks with LIBS replaced, and
-# LDFLAGS also reaches the modules' link. -static links GCC's runtime and
-# winpthreads in, so the modules import no MinGW DLL.
-# MKDIR_P: configure leaves it empty, and the extensions' install needs it.
-# rtpostgis.sql first, on its own: under -j two sub-makes regenerate it
-# through the same temporary file (as in postgis.sh).
+# GNU ld links static libraries in order, so each library's own needs follow
+# it: libgeos_c needs libgeos and the C++ runtime (and its threads), libproj
+# SQLite, the C++ runtime and Windows' shell32 and ole32. configure links its
+# GEOS check with what geos-config --clibs says, and takes PROJ's flags as
+# given (PROJ_CFLAGS, PROJ_LIBS); both also reach the modules' link.
+# -static links GCC's runtime and winpthreads in, so the modules import no
+# MinGW DLL. MKDIR_P: configure leaves it empty, and the extensions' install
+# needs it. rtpostgis.sql first, on its own: under -j two sub-makes
+# regenerate it through the same temporary file (as in postgis.sh).
+cat >"$work/geos-config" <<SH
+#!/bin/sh
+case "\$1" in --clibs) echo "\$("$prefix/bin/geos-config" --clibs) -lgeos -lstdc++ -lpthread" ;; *) exec "$prefix/bin/geos-config" "\$@" ;; esac
+SH
+chmod +x "$work/geos-config"
 (
   cd "postgis-$POSTGIS_VERSION"
   ./configure --with-pgconfig="$pg_config" --without-raster --without-gui \
     --without-sfcgal --without-address-standardizer --with-gettext=no \
-    --with-geosconfig="$prefix/bin/geos-config" --with-projdir="$prefix" --with-jsondir="$prefix" \
+    --with-geosconfig="$work/geos-config" --with-jsondir="$prefix" \
     --with-protobufdir="$prefix" --with-xml2config="$work/xml2-config" PROTOCC="$protoc_c" \
-    LDFLAGS="-L$prefix/lib -static -lgeos -lsqlite3 -lstdc++ -lpthread -lshell32 -lole32 -lbcrypt" &&
+    PROJ_CFLAGS="-I$prefix/include" PROJ_LIBS="-L$prefix/lib -lproj -lsqlite3 -lstdc++ -lpthread -lshell32 -lole32" \
+    LDFLAGS="-L$prefix/lib -static" &&
     make -C raster/rt_pg rtpostgis.sql &&
     make -j"$jobs" &&
     make install MKDIR_P="mkdir -p"
-) >>"$log" 2>&1 || failed "PostGIS $POSTGIS_VERSION"
+) >>"$log" 2>&1 || { tail -n 60 "postgis-$POSTGIS_VERSION/config.log" >&2 || true; failed "PostGIS $POSTGIS_VERSION"; }
 
 pkglibdir="$(cygpath -u "$("$pg_config" --pkglibdir)")"
 extdir="$(cygpath -u "$("$pg_config" --sharedir)")/extension"
