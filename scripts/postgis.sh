@@ -126,6 +126,11 @@ chmod +x "$work/xml2-config"
 # PG_SYSROOT: the Postgres build remembers its own build machine's SDK path.
 # --prefix: topology links against $prefix/bin/postgres (-bundle_loader).
 # MKDIR_P: configure leaves it empty, and the extensions' install needs it.
+# rtpostgis.sql first, on its own: even without raster, utils/ starts two
+# sub-makes in raster/rt_pg that both regenerate it through the same
+# rtpostgis.sql.tmp, and under -j one can delete the file while the other
+# reads it ("Unable to locate target new version number in rtpostgis.sql").
+# Built up front, both find it up to date.
 (
   export PATH="$clean_path"
   unset PKG_CONFIG_PATH CPATH LIBRARY_PATH
@@ -135,6 +140,7 @@ chmod +x "$work/xml2-config"
     --with-geosconfig="$prefix/bin/geos-config" --with-projdir="$prefix" --with-jsondir="$prefix" \
     --with-protobufdir="$prefix" --with-xml2config="$work/xml2-config" PROTOCC="$protoc_c" \
     LDFLAGS="-L$prefix/lib -lgeos -lsqlite3 -lc++" &&
+    make -C raster/rt_pg rtpostgis.sql PG_SYSROOT="$sdk" &&
     make -j"$jobs" PG_SYSROOT="$sdk" &&
     make install PG_SYSROOT="$sdk" DESTDIR="$work/dest" MKDIR_P="/bin/mkdir -p"
 ) >>"$log" 2>&1 || failed "PostGIS $POSTGIS_VERSION"
