@@ -168,6 +168,13 @@ try {
       Select-String -Path Makefile -Pattern '\$\(BUILD_DIR\)\\(\S+)\\[^\\\s]+\.obj' -AllMatches |
         ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique |
         ForEach-Object { New-Item -ItemType Directory -Force -Path "$dir\x64\Release\$_" | Out-Null }
+      # configure.bat writes the objects link reads on one line, and link
+      # stops at a line of 131071 characters (grpc has about 1,500 objects,
+      # each with its full path). Put one on each line.
+      Get-ChildItem "$dir\x64\Release\resp\*.txt" -ErrorAction SilentlyContinue | ForEach-Object {
+        $objs = (Get-Content -Raw $_.FullName).Split([char[]]" `t`r`n", [StringSplitOptions]::RemoveEmptyEntries)
+        Set-Content -Encoding ascii $_.FullName $objs
+      }
       # <EXT>_CL: compiler options the extension needs that its config.w32
       # doesn't pass; cl reads them from the CL variable.
       $env:CL = Pin $ext 'cl'
