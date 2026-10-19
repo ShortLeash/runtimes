@@ -44,8 +44,7 @@ if (Test-Path -LiteralPath (Join-Path $Stage 'bin')) {
 }
 $bad = @()
 foreach ($dll in Get-ChildItem -LiteralPath $Stage -Recurse -Filter *.dll) {
-  $deps = & dumpbin /NOLOGO /DEPENDENTS $dll.FullName |
-    Where-Object { $_ -match '^\s+(\S+\.(dll|exe))\s*$' } | ForEach-Object { $Matches[1] }
+  $deps = @(& dumpbin /NOLOGO /DEPENDENTS $dll.FullName | ForEach-Object { if ($_ -match '^\s+(\S+\.(dll|exe))\s*$') { $Matches[1] } })
   if (-not $deps) { throw "dumpbin listed no imports for $($dll.Name)" }
   foreach ($d in $deps) {
     $name = $d.ToLower()
