@@ -6,7 +6,7 @@ Usage: python3 scripts/tag.py <outputs folder>
 A MariaDB or PostGIS build is released only with its sources: when
 <name>-<version>-sources.tar.gz isn't among the outputs, or doesn't hold the
 script that made the build (scripts/postgis-windows.sh for a Windows PostGIS,
-whose sources include the libraries only that build links), the build is
+with the libxml2 and SQLite tarballs only that build links), the build is
 left out, named on stderr, and the script exits 1 after printing the rest, so
 the other builds still release and the run fails. Sources files print first,
 so a failed upload can't leave a build on its release without them.
@@ -28,6 +28,8 @@ import pathlib
 import re
 import sys
 import tarfile
+
+from buildinfo import parse_env
 
 PATTERNS = [
     re.compile(r"^(?P<tag>php-\d+\.\d+\.\d+)-(?:cli|fpm)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
@@ -113,36 +115,53 @@ BUILD_SCRIPTS = {
 }
 
 
-def build_script(name: str):
-    """The script that made a build, as its sources file lists it, or None.
+def required_members(name: str, pins: dict):
+    """What a GPL build's sources file must hold, or None when no build
+    script is known for it: the script that made it and, for a Windows
+    PostGIS, the libxml2 and SQLite tarballs only that build links in, as
+    scripts/postgis.env pins them (pins).
 
-    >>> build_script("postgis-3.6.4-pg14-windows-x86_64.zip"), build_script("postgis-3.6.4-pg18-macos-aarch64.tar.gz")
-    ('scripts/postgis-windows.sh', 'scripts/postgis.sh')
-    >>> build_script("mariadb-11.8.9-macos-x86_64.tar.gz")
-    'scripts/mariadb.sh'
-    >>> build_script("postgis-3.6.4-pg14-linux-x86_64.tar.gz") is None
+    >>> pins = {"LIBXML2_VERSION": "2.15.4", "SQLITE_TARBALL": "2026/sqlite-autoconf-3540100.tar.gz"}
+    >>> required_members("postgis-3.6.4-pg14-windows-x86_64.zip", pins)
+    ['scripts/postgis-windows.sh', 'libxml2-2.15.4.tar.xz', 'sqlite-autoconf-3540100.tar.gz']
+    >>> required_members("postgis-3.6.4-pg18-macos-aarch64.tar.gz", pins), required_members("mariadb-11.8.9-macos-x86_64.tar.gz", pins)
+    (['scripts/postgis.sh'], ['scripts/mariadb.sh'])
+    >>> required_members("postgis-3.6.4-pg14-linux-x86_64.tar.gz", pins) is None
     True
     """
     m = re.search(r"-([a-z]+)-[a-z0-9_]+\.(?:tar\.gz|zip)$", name)
-    return BUILD_SCRIPTS.get((tag(name).split("-")[0], m[1] if m else ""))
+    key = (tag(name).split("-")[0], m[1] if m else "")
+    script = BUILD_SCRIPTS.get(key)
+    if script is None:
+        return None
+    if key == ("postgis", "windows"):
+        return [script, f"libxml2-{pins['LIBXML2_VERSION']}.tar.xz", pins["SQLITE_TARBALL"].rsplit("/", 1)[-1]]
+    return [script]
 
 
-def unreleasable(name: str, present: set, listing) -> str:
+def unreleasable(name: str, present: set, listing, pins: dict) -> str:
     """Why a build can't be released, or "" when it can: its sources file
-    must be among the outputs and hold the script that made it. listing(file)
-    gives a sources file's members.
+    must be among the outputs and hold what required_members names.
+    listing(file) gives a sources file's members.
 
+    >>> pins = {"LIBXML2_VERSION": "2.15.4", "SQLITE_TARBALL": "2026/sqlite-autoconf-3540100.tar.gz"}
     >>> held = {"postgis-3.6.4-sources.tar.gz": {"scripts/postgis.sh"}}
     >>> present = set(held)
-    >>> unreleasable("postgis-3.6.4-pg18-macos-aarch64.tar.gz", present, held.get)
+    >>> unreleasable("postgis-3.6.4-pg18-macos-aarch64.tar.gz", present, held.get, pins)
     ''
-    >>> unreleasable("postgis-3.6.4-pg18-windows-x86_64.zip", present, held.get)
+    >>> unreleasable("postgis-3.6.4-pg18-windows-x86_64.zip", present, held.get, pins)
     "postgis-3.6.4-sources.tar.gz doesn't hold scripts/postgis-windows.sh, so it isn't this build's sources"
-    >>> unreleasable("mariadb-11.8.9-macos-aarch64.tar.gz", present, held.get)
+    >>> held["postgis-3.6.4-sources.tar.gz"] |= {"scripts/postgis-windows.sh", "sqlite-autoconf-3540100.tar.gz"}
+    >>> unreleasable("postgis-3.6.4-pg18-windows-x86_64.zip", present, held.get, pins)
+    "postgis-3.6.4-sources.tar.gz doesn't hold libxml2-2.15.4.tar.xz, so it isn't this build's sources"
+    >>> held["postgis-3.6.4-sources.tar.gz"].add("libxml2-2.15.4.tar.xz")
+    >>> unreleasable("postgis-3.6.4-pg18-windows-x86_64.zip", present, held.get, pins)
+    ''
+    >>> unreleasable("mariadb-11.8.9-macos-aarch64.tar.gz", present, held.get, pins)
     "mariadb-11.8.9-sources.tar.gz isn't among the outputs"
-    >>> unreleasable("postgis-3.6.4-pg18-linux-x86_64.tar.gz", present, held.get)
+    >>> unreleasable("postgis-3.6.4-pg18-linux-x86_64.tar.gz", present, held.get, pins)
     'no build script is known for it'
-    >>> unreleasable("ruby-3.4.7-windows-x86_64.zip", present, held.get)
+    >>> unreleasable("ruby-3.4.7-windows-x86_64.zip", present, held.get, pins)
     ''
     """
     sources = sources_for(name)
@@ -150,29 +169,32 @@ def unreleasable(name: str, present: set, listing) -> str:
         return ""
     if sources not in present:
         return f"{sources} isn't among the outputs"
-    script = build_script(name)
-    if script is None:
+    members = required_members(name, pins)
+    if members is None:
         return "no build script is known for it"
-    if script not in listing(sources):
-        return f"{sources} doesn't hold {script}, so it isn't this build's sources"
+    held = listing(sources)
+    for member in members:
+        if member not in held:
+            return f"{sources} doesn't hold {member}, so it isn't this build's sources"
     return ""
 
 
-def releases(names: list, listing) -> tuple:
+def releases(names: list, listing, pins: dict) -> tuple:
     """Each output's release as (tag, name), and the builds withheld, with
     why (unreleasable). listing(file) gives a sources file's members.
 
+    >>> pins = {"LIBXML2_VERSION": "2.15.4", "SQLITE_TARBALL": "2026/sqlite-autoconf-3540100.tar.gz"}
     >>> held = {"mariadb-11.8.9-sources.tar.gz": {"scripts/mariadb.sh"}, "postgis-3.6.4-sources.tar.gz": {"scripts/postgis.sh"}}
     >>> released, withheld = releases(["mariadb-11.8.9-macos-aarch64.tar.gz", "mariadb-11.8.9-sources.tar.gz",
     ...     "mariadb-10.11.19-macos-x86_64.tar.gz", "postgis-3.6.4-pg18-windows-x86_64.zip",
-    ...     "postgis-3.6.4-sources.tar.gz", "ruby-3.4.7-windows-x86_64.zip"], held.get)
+    ...     "postgis-3.6.4-sources.tar.gz", "ruby-3.4.7-windows-x86_64.zip"], held.get, pins)
     >>> [name for _, name in released]
     ['mariadb-11.8.9-macos-aarch64.tar.gz', 'mariadb-11.8.9-sources.tar.gz', 'postgis-3.6.4-sources.tar.gz', 'ruby-3.4.7-windows-x86_64.zip']
     >>> [name for name, _ in withheld]
     ['mariadb-10.11.19-macos-x86_64.tar.gz', 'postgis-3.6.4-pg18-windows-x86_64.zip']
-    >>> releases(["postgis-3.6.4-sources.tar.gz"], held.get)
+    >>> releases(["postgis-3.6.4-sources.tar.gz"], held.get, pins)
     ([('postgis-3.6.4', 'postgis-3.6.4-sources.tar.gz')], [])
-    >>> releases(["mariadb-11.8.9-macos-aarch64.tar.gz", "notes.txt"], held.get)
+    >>> releases(["mariadb-11.8.9-macos-aarch64.tar.gz", "notes.txt"], held.get, pins)
     Traceback (most recent call last):
     ...
     ValueError: notes.txt: not a build output
@@ -180,7 +202,7 @@ def releases(names: list, listing) -> tuple:
     present = set(names)
     released, withheld = [], []
     for name in names:
-        why = unreleasable(name, present, listing)
+        why = unreleasable(name, present, listing, pins)
         if why:
             withheld.append((name, why))
         else:
@@ -195,7 +217,8 @@ def main() -> None:
         with tarfile.open(paths[name]) as t:
             return set(t.getnames())
 
-    released, withheld = releases(sorted(paths), listing)
+    pins = parse_env((pathlib.Path(__file__).resolve().parent / "postgis.env").read_text(encoding="utf-8"))
+    released, withheld = releases(sorted(paths), listing, pins)
     # Sources first, so a failed upload can't leave a build without them.
     for release, name in sorted(released, key=lambda r: sources_for(r[1]) is not None):
         print(release, paths[name])
