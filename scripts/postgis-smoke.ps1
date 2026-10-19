@@ -46,6 +46,7 @@ $bad = @()
 foreach ($dll in Get-ChildItem -LiteralPath $Stage -Recurse -Filter *.dll) {
   $deps = @(& dumpbin /NOLOGO /DEPENDENTS $dll.FullName | ForEach-Object { if ($_ -match '^\s+(\S+\.(dll|exe))\s*$') { $Matches[1] } })
   if (-not $deps) { throw "dumpbin listed no imports for $($dll.Name)" }
+  Write-Output "$($dll.Name) imports $($deps -join ', ')"
   foreach ($d in $deps) {
     $name = $d.ToLower()
     if ($name -ne 'postgres.exe' -and $name -notmatch $system -and $own -notcontains $name) {
@@ -143,4 +144,5 @@ try {
   # Fails when the server never started; that's fine here.
   try { & (Join-Path $moved 'bin\pg_ctl.exe') -D $data -m fast stop | Out-Null } catch { }
 }
-Write-Output "PostGIS $($pins['POSTGIS_VERSION']) works in Postgres $(Split-Path -Leaf $PgRoot)"
+Write-Output $full
+Write-Output "PostGIS $($pins['POSTGIS_VERSION']) works in $(& (Join-Path $PgRoot 'bin\postgres.exe') --version)"
