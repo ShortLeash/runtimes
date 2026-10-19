@@ -9,8 +9,9 @@
 # Writes out/postgis-<version>-pg<major>-macos-<arch>.tar.gz holding lib/
 # (postgis-3 and postgis_topology-3, .dylib from Postgres 16, .so before),
 # extension/ (the postgis, postgis_topology and postgis_tiger_geocoder
-# control and SQL files) and proj/proj.db, which PROJ finds through
-# PROJ_DATA. The libraries link nothing outside macOS itself.
+# control and SQL files), proj/proj.db, which PROJ finds through PROJ_DATA,
+# and doc/ with the licences of PostGIS and the libraries linked into it. The
+# libraries link nothing outside macOS itself.
 set -euo pipefail
 
 pg="$1"
@@ -26,7 +27,7 @@ triple="$arch-apple-darwin"
 work="$(cd "$(mktemp -d)" && pwd -P)"
 cd "$work"
 stage="$work/stage"
-mkdir -p "$stage/lib" "$stage/extension" "$stage/proj"
+mkdir -p "$stage/lib" "$stage/extension" "$stage/proj" "$stage/doc"
 fetch_github_asset theseus-rs/postgresql-binaries "$pg" "postgresql-$pg-$triple.tar.gz" pg.tar.gz
 tar -xzf pg.tar.gz
 pgroot="$work/postgresql-$pg-$triple"
@@ -51,6 +52,9 @@ cmake_bin="$(command -v cmake || true)"
 # PostGIS's tarball ships no code generated from its .proto files (vector
 # tiles, Geobuf), so the build needs protobuf-c's compiler, protoc-c. It only
 # writes C source; the runtime library linked in is the pinned one below.
+# protoc-c itself isn't pinned: it's a code generator used at build time,
+# required to be the runtime's 1.5.x series, and the generated header refuses
+# to compile against a runtime it doesn't support.
 protoc_c="$(command -v protoc-c || true)"
 [ -n "$protoc_c" ] || { echo "PostGIS needs protoc-c to build; install Homebrew's protobuf-c first" >&2; exit 1; }
 protoc_c_version="$("$protoc_c" --version 2>/dev/null | awk '$1 == "protobuf-c" {print $2}')"
@@ -148,6 +152,15 @@ for ext in postgis postgis_topology postgis_tiger_geocoder; do
   cp "$installed/share/extension/$ext.control" "$installed/share/extension/$ext--"*.sql "$stage/extension/"
 done
 cp "$prefix/share/proj/proj.db" "$stage/proj/"
+# The licences travel with the modules, from the checked source tarballs.
+# SQLite isn't among them: it's macOS's own library, not linked in.
+licences=(postgis/COPYING postgis/LICENSE.TXT geos/COPYING proj/COPYING json-c/COPYING protobuf-c/LICENSE)
+mkdir -p "$stage/doc"/{postgis,geos,proj,json-c,protobuf-c}
+cp "postgis-$POSTGIS_VERSION/COPYING" "postgis-$POSTGIS_VERSION/LICENSE.TXT" "$stage/doc/postgis/"
+cp "geos-$GEOS_VERSION/COPYING" "$stage/doc/geos/"
+cp "proj-$PROJ_VERSION/COPYING" "$stage/doc/proj/"
+cp "json-c-$JSONC_VERSION/COPYING" "$stage/doc/json-c/"
+cp "protobuf-c-$PROTOBUFC_VERSION/LICENSE" "$stage/doc/protobuf-c/"
 # On macOS, configure adds a run path to GEOS's and PROJ's build folder, which
 # static libraries don't need.
 for f in "$stage/lib/"*; do
@@ -228,5 +241,13 @@ fi
 
 check_macos_minimum "$stage"
 
-tar -C "$stage" -czf "$out/postgis-$POSTGIS_VERSION-pg$major-macos-$arch.tar.gz" lib extension proj
+archive="$out/postgis-$POSTGIS_VERSION-pg$major-macos-$arch.tar.gz"
+tar -C "$stage" -czf "$archive" lib extension proj doc
+# The archive carries every licence, and PostGIS's is the GPL.
+listing="$(tar -tzf "$archive")"
+for f in "${licences[@]}"; do
+  grep -qx "doc/$f" <<<"$listing" || { echo "The archive has no doc/$f" >&2; exit 1; }
+done
+grep -q 'GNU GENERAL PUBLIC LICENSE' "$stage/doc/postgis/COPYING" || { echo "doc/postgis/COPYING isn't the GPL" >&2; exit 1; }
+grep -q 'GNU LESSER GENERAL PUBLIC LICENSE' "$stage/doc/geos/COPYING" || { echo "doc/geos/COPYING isn't the LGPL" >&2; exit 1; }
 echo "Built PostGIS $POSTGIS_VERSION for Postgres $pg on macos-$arch"

@@ -8,7 +8,7 @@ Build scripts for the runtimes [DevKit](https://getdevkit.app) installs, built o
 - **pgvector** for every PostgreSQL version DevKit installs, on macOS and Windows.
 - **memcached** for macOS, with libevent linked in.
 - **MariaDB 11.8 and 10.11** for macOS: relocatable server and client programs with wolfSSL, zlib, PCRE2 and fmt built in, and GnuTLS with Nettle for the client library.
-- **PostGIS 3.6** for every PostgreSQL version DevKit installs, on macOS: the `postgis` and `postgis_topology` modules with GEOS, PROJ, json-c and protobuf-c linked in, the `postgis_tiger_geocoder` extension, and PROJ's `proj.db`. Built without raster support (no GDAL).
+- **PostGIS 3.6** for every PostgreSQL version DevKit installs, on macOS: the `postgis` and `postgis_topology` modules with GEOS, PROJ, json-c and protobuf-c linked in, the `postgis_tiger_geocoder` extension, PROJ's `proj.db`, and the licences of all of them. Built without raster support (no GDAL).
 - **libwebrtc** for macOS and Windows (both architectures each), built without H.264.
 - **The voice engines** for DevKit's local dictation, meeting notes and chat: [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) for speech and [llama.cpp](https://github.com/ggml-org/llama.cpp) with its `common` library, each with its own ggml. Static libraries for macOS (Metal on Apple silicon, the CPU on Intel) and DLLs for Windows x64 (CPU variants picked at run time, plus Vulkan).
 - **The models** DevKit offers for them, in [`models/catalogue.json`](models/catalogue.json): speech models converted and quantized here, and chat models checked here (see [Models](#models)).

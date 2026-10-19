@@ -139,7 +139,7 @@ MariaDB Server and its client programs for macOS. The server uses its bundled wo
 
 ## PostGIS
 
-PostGIS for macOS, built without raster support (no GDAL), for each Postgres version DevKit installs. libxml2, SQLite and libc++ are macOS's own, linked from the system.
+PostGIS for macOS, built without raster support (no GDAL), for each Postgres version DevKit installs. libxml2, SQLite and libc++ are macOS's own, linked from the system. Each archive carries PostGIS's `COPYING` and `LICENSE.TXT` and the licences of GEOS, PROJ, json-c and protobuf-c in `doc/`.
 
 | Component | Licence |
 |---|---|
