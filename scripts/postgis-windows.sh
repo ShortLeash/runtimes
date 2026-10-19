@@ -198,13 +198,17 @@ chmod +x "$work/xml2-config"
 
 # --- Postgres's headers, PGXS and libpq, configured for GCC -----------------
 # Only what building a module needs; the server itself isn't built. libpq is
-# there because PostGIS's configure links a test program against it.
+# there because PostGIS's configure links a test program against it, and
+# libpgport and libpgcommon because PGXS links modules with them on Windows
+# (postgres.exe's exports come first, so they fill in only what it lacks).
 pgmingw="$work/pgsql"
 (
   cd "postgresql-$pgsrc_version"
   ./configure --prefix="$pgmingw" --without-readline --without-zlib --without-icu --without-openssl &&
     make -C src/backend generated-headers &&
     make -C src/include install &&
+    make -C src/port install &&
+    make -C src/common install &&
     make -C src/interfaces/libpq install &&
     make -C src/bin/pg_config install &&
     make -C src/makefiles install &&
