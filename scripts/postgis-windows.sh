@@ -21,6 +21,8 @@
 # archive's contents (stage/) for scripts/postgis-smoke.ps1, which the
 # workflow runs next.
 set -euo pipefail
+# A failing command substitution stops the script without a word.
+trap 'echo "postgis-windows.sh stopped at line $LINENO: $BASH_COMMAND" >&2' ERR
 
 pg="$1"
 out="$(mkdir -p "$2" && cd "$2" && pwd)"
@@ -106,15 +108,27 @@ sqlite_src="$(basename "$SQLITE_TARBALL" .tar.gz)"
 # end up in the modules; the build records their versions and ships their
 # licences.
 # protoc-c writes PostGIS's vector tile and Geobuf code from its .proto files
-# at build time, like on macOS: it must be the runtime's 1.5.x series, and
-# nothing of MSYS2's protobuf-c is linked (the import check proves it).
-protoc_c="$(command -v protoc-c || true)"
-[ -n "$protoc_c" ] || { echo "PostGIS needs protoc-c to build; install MSYS2's protobuf-c first" >&2; exit 1; }
-protoc_c_version="$("$protoc_c" --version 2>/dev/null | awk '$1 == "protobuf-c" {print $2}')"
-if [ "${protoc_c_version%.*}" != "${PROTOBUFC_VERSION%.*}" ]; then
-  echo "protoc-c is ${protoc_c_version:-unknown}, not protobuf-c ${PROTOBUFC_VERSION%.*}.x like the runtime" >&2
+# at build time, like on macOS: MSYS2's protobuf-c must be the runtime's 1.5.x
+# series, and nothing of it is linked (the import check proves it). It runs
+# as protoc's plugin, the way protoc-c itself does.
+protoc="$(command -v protoc || true)"
+protoc_gen_c="$(command -v protoc-gen-c || true)"
+if [ -z "$protoc" ] || [ -z "$protoc_gen_c" ]; then
+  echo "PostGIS needs protoc and protoc-gen-c to build; install MSYS2's protobuf-c first" >&2
   exit 1
 fi
+protoc_c_version="$(pacman -Q mingw-w64-ucrt-x86_64-protobuf-c | awk '{print $2}')"
+protoc_c_version="${protoc_c_version%-*}"
+if [ "${protoc_c_version%.*}" != "${PROTOBUFC_VERSION%.*}" ]; then
+  echo "MSYS2's protobuf-c is ${protoc_c_version:-unknown}, not ${PROTOBUFC_VERSION%.*}.x like the runtime" >&2
+  exit 1
+fi
+protoc_c="$work/protoc-c"
+cat >"$protoc_c" <<SH
+#!/bin/sh
+exec "$protoc" --plugin=protoc-gen-c="$(win "$protoc_gen_c")" "\$@"
+SH
+chmod +x "$protoc_c"
 runtime_libs=()
 for f in "$(gcc -print-file-name=libstdc++.a)" "$(gcc -print-libgcc-file-name)" \
   "$(gcc -print-file-name=libwinpthread.a)" "$(gcc -print-file-name=libmingwex.a)"; do
