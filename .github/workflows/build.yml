@@ -25,7 +25,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows]
+        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -70,6 +70,9 @@ jobs:
       libwebrtc: ${{ steps.plan.outputs.libwebrtc }}
       voice_engines: ${{ steps.plan.outputs.voice_engines }}
       php_ext_windows: ${{ steps.plan.outputs.php_ext_windows }}
+      mariadb: ${{ steps.plan.outputs.mariadb }}
+      postgis: ${{ steps.plan.outputs.postgis }}
+      postgis_windows: ${{ steps.plan.outputs.postgis_windows }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:

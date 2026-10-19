@@ -10,7 +10,10 @@ has both Mac architectures, libwebrtc-0.3.49 has every Mac and Windows
 architecture, and voice-engines-0.4.0-0.1.160 (named after the
 transcribe-cpp-sys and llama-cpp-sys-2 crates) has both Mac architectures and
 Windows x64. php-ext-redis-6.3.0 has one Windows x64 DLL for each PHP minor,
-built with the compiler that minor's official PHP uses.
+built with the compiler that minor's official PHP uses. mariadb-11.8.9 has
+both Mac architectures, and postgis-3.6.4 has every Postgres major on every
+platform (postgis-3.6.4-pg18-macos-aarch64.tar.gz). Both also carry the GPL
+sources they were built from, as <name>-<version>-sources.tar.gz.
 """
 
 import pathlib
@@ -25,6 +28,8 @@ PATTERNS = [
     re.compile(r"^(?P<tag>libwebrtc-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
     re.compile(r"^(?P<tag>voice-engines-\d+\.\d+\.\d+-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
     re.compile(r"^(?P<tag>php-ext-[a-z0-9_]+-\d+\.\d+\.\d+)-php\d+\.\d+-nts-vs\d+-windows-x86_64\.zip$"),
+    re.compile(r"^(?P<tag>mariadb-\d+\.\d+\.\d+)-(?:macos-[a-z0-9_]+\.tar\.gz|sources\.tar\.gz)$"),
+    re.compile(r"^(?P<tag>postgis-\d+\.\d+\.\d+)-(?:pg\d+-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)|sources\.tar\.gz)$"),
 ]
 
 
@@ -48,6 +53,16 @@ def tag(name: str) -> str:
     'php-ext-pdo_sqlsrv-5.13.3'
     >>> tag("php-ext-mongodb-1.20.1-php8.0-nts-vs16-windows-x86_64.zip")
     'php-ext-mongodb-1.20.1'
+    >>> tag("mariadb-11.8.9-macos-aarch64.tar.gz")
+    'mariadb-11.8.9'
+    >>> tag("mariadb-10.11.19-sources.tar.gz")
+    'mariadb-10.11.19'
+    >>> tag("postgis-3.6.4-pg18-macos-x86_64.tar.gz")
+    'postgis-3.6.4'
+    >>> tag("postgis-3.6.4-pg14-windows-x86_64.zip")
+    'postgis-3.6.4'
+    >>> tag("postgis-3.6.4-sources.tar.gz")
+    'postgis-3.6.4'
     >>> tag("notes.txt")
     Traceback (most recent call last):
     ...
