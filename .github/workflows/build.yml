@@ -119,6 +119,7 @@ jobs:
   php:
     needs: plan
     if: needs.plan.outputs.php != '[]'
+    name: php ${{ matrix.php.version }} (${{ matrix.runner }})
     strategy:
       fail-fast: false
       matrix:
