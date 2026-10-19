@@ -116,7 +116,8 @@ if ((git -C sdk rev-parse HEAD) -ne $sdkCommit) { throw "php-sdk-binary-tools $s
 $sdk = "$work\sdk"
 
 # Each extension's source in src-<ext>: a git tag at its pinned commit, or a
-# PECL tarball at its pinned SHA-256 (PECL publishes no checksum).
+# PECL tarball at its pinned SHA-256 (PECL publishes no checksum). Then the
+# patches <EXT>_PATCHES names from scripts\php-ext-patches, if any.
 function Pecl-Url([string]$ext) { "https://pecl.php.net/get/$ext-$(Pin $ext 'version').tgz" }
 foreach ($ext in $wanted) {
   if ((Pin $ext 'source') -eq 'pecl') {
@@ -129,11 +130,16 @@ foreach ($ext in $wanted) {
     tar -xzf $tgz -C "$work\pecl-$ext"
     if (-not (Test-Path "$work\pecl-$ext\$ext-$version\config.w32")) { throw "${ext}: $ext-$version.tgz has no $ext-$version\config.w32" }
     Move-Item "$work\pecl-$ext\$ext-$version" "$work\src-$ext"
-    continue
+  } else {
+    $repo = Pin $ext 'repo'; $tag = Pin $ext 'tag'; $commit = Pin $ext 'commit'
+    git clone --quiet --depth 1 --branch $tag "https://github.com/$repo.git" "src-$ext"
+    if ((git -C "src-$ext" rev-parse HEAD) -ne $commit) { throw "${ext}: $repo $tag isn't commit $commit" }
   }
-  $repo = Pin $ext 'repo'; $tag = Pin $ext 'tag'; $commit = Pin $ext 'commit'
-  git clone --quiet --depth 1 --branch $tag "https://github.com/$repo.git" "src-$ext"
-  if ((git -C "src-$ext" rev-parse HEAD) -ne $commit) { throw "${ext}: $repo $tag isn't commit $commit" }
+  foreach ($patch in (Pin $ext 'patches').Split(' ', [StringSplitOptions]::RemoveEmptyEntries)) {
+    $file = Join-Path $PSScriptRoot "php-ext-patches\$patch"
+    if (-not (Test-Path $file)) { throw "${ext}: no $patch in scripts\php-ext-patches" }
+    git -C "$work\src-$ext" apply --verbose $file
+  }
 }
 
 # 4. Build each extension in its own checkout, with the SDK's tools on PATH
@@ -225,6 +231,8 @@ foreach ($ext in $wanted) {
     cl = $cl
     configure = (Pin $ext 'configure')
     cl_options = (Pin $ext 'cl')
+    patches = @((Pin $ext 'patches').Split(' ', [StringSplitOptions]::RemoveEmptyEntries) |
+      ForEach-Object { [ordered]@{ file = $_; sha256 = (Sha256 (Join-Path $PSScriptRoot "php-ext-patches\$_")) } })
     php_m = @($modules | Where-Object { $_ })
   })
 
