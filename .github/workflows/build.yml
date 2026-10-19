@@ -413,10 +413,17 @@ jobs:
         shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
         env:
           MSYSTEM: UCRT64
+        # MSYS2's mirrors turn away bursts of downloads (429), and five jobs
+        # start at once: each try waits longer before the next.
         run: |
-          pacman -Syuu --noconfirm
-          pacman -S --noconfirm --needed make perl python bison flex bzip2 xz unzip zip \
-            mingw-w64-ucrt-x86_64-{gcc,tools-git,cmake,ninja,pkgconf,libiconv,protobuf-c}
+          for try in 1 2 3 4 5; do
+            pacman -Syuu --noconfirm &&
+              pacman -S --noconfirm --needed make perl python bison flex bzip2 xz unzip zip \
+                mingw-w64-ucrt-x86_64-{gcc,tools-git,cmake,ninja,pkgconf,libiconv,protobuf-c} &&
+              exit 0
+            sleep $((try * 30))
+          done
+          exit 1
       - name: Build PostGIS for Postgres ${{ matrix.postgres }}
         shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
         env:
