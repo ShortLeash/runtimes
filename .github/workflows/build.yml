@@ -401,11 +401,14 @@ jobs:
       # pacman checks every package's signature against MSYS2's keyring.
       # Only the toolchain comes from MSYS2: the libraries linked into
       # PostGIS build from the checked sources in scripts/postgis.env.
-      - name: Update MSYS2
-        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
-        env:
-          MSYSTEM: UCRT64
-        run: pacman -Syuu --noconfirm
+      - name: Update MSYS2's core
+        shell: pwsh
+        run: |
+          # pacman closes every MSYS2 program after updating the core, its
+          # own shell included, so the exit status says nothing here; the
+          # next step's update fails on any real error.
+          C:\msys64\usr\bin\bash.exe --login -c 'pacman -Syuu --noconfirm'
+          exit 0
       - name: Install MSYS2's UCRT64 toolchain
         shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
         env:
