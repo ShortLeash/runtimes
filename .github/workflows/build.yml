@@ -1,6 +1,6 @@
 # Builds static PHP with more extensions, PHP extensions for Windows PHP,
-# relocatable Ruby, pgvector for each Postgres version DevKit installs,
-# memcached, MariaDB and PostGIS for macOS, libwebrtc (without H.264) and the
+# relocatable Ruby, pgvector and PostGIS for each Postgres version DevKit
+# installs, memcached and MariaDB for macOS, libwebrtc (without H.264) and the
 # local AI engines (transcribe.cpp and llama.cpp) for DevKit, and attaches
 # them to this repository's releases with a build attestation. DevKit's own
 # publishing verifies each file against that attestation before it signs and
@@ -381,6 +381,50 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  # PostGIS for the MSVC Postgres DevKit installs on Windows, built with
+  # MSYS2's UCRT64 GCC (scripts/postgis-windows.sh), then checked in that
+  # Postgres (scripts/postgis-smoke.ps1).
+  postgis-windows:
+    needs: plan
+    if: needs.plan.outputs.postgis_windows == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every PostgreSQL version DevKit installs; DevKit's publishing checks it
+        postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      # The action installs MSYS2 from an installer it pins by SHA-256, and
+      # pacman checks every package's signature against MSYS2's keyring.
+      # Only the toolchain comes from MSYS2: the libraries linked into
+      # PostGIS build from the checked sources in scripts/postgis.env.
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make perl python bison flex bzip2 xz unzip zip
+          pacboy: >-
+            gcc:p tools-git:p cmake:p ninja:p pkgconf:p libiconv:p protobuf-c:p
+      - name: Build PostGIS for Postgres ${{ matrix.postgres }}
+        shell: msys2 {0}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/postgis-windows.sh ${{ matrix.postgres }} out "$(cygpath -u '${{ runner.temp }}')/postgis"
+      # dumpbin for the smoke test's import check.
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Check PostGIS in Postgres ${{ matrix.postgres }}
+        shell: pwsh
+        run: ./scripts/postgis-smoke.ps1 "${{ runner.temp }}\postgis\pgroot" "${{ runner.temp }}\postgis\stage"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: postgis-${{ matrix.postgres }}-windows
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   # The complete sources of the GPL builds, attached to their releases (GPLv2
   # section 3(a)): one job per thing, so each sources file comes from exactly
   # one job. The release withholds a MariaDB or PostGIS build whose sources
@@ -408,14 +452,14 @@ jobs:
           retention-days: 1
 
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis, sources]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis, postgis-windows, sources]
     # Release what built; a build that failed or timed out keeps its last
     # release, and so does a MariaDB or PostGIS build whose sources didn't
     # build. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.mariadb.result != 'skipped' || needs.postgis.result != 'skipped' || needs.sources.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.mariadb.result != 'skipped' || needs.postgis.result != 'skipped' || needs['postgis-windows'].result != 'skipped' || needs.sources.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
