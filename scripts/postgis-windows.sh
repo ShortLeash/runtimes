@@ -318,7 +318,7 @@ for p in $runtime_pkgs; do
 done
 # GCC's runtime exception, mingw-w64's notices for programs linked with its
 # runtime, and winpthreads' licence.
-for want in 'GCC RUNTIME LIBRARY EXCEPTION' 'statically linked against the MinGW-w64 runtime' 'Lockless Inc'; do
+for want in 'GCC RUNTIME LIBRARY EXCEPTION' 'MinGW-w64 runtime licensing' 'Lockless Inc'; do
   grep -rqs "$want" "$stage/doc/mingw-w64" ||
     { echo "No MSYS2 licence says '$want':" >&2; find "$stage/doc/mingw-w64" >&2; exit 1; }
 done
