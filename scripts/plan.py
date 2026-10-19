@@ -14,8 +14,10 @@ PHP_PREVIEW_MINORS (space-separated, "8.6") names minors php.net hasn't
 released yet: each builds its newest pre-release (8.6.0RC3), with the
 tarball's URL and php.net's SHA-256 for php.sh to check, on the same rules.
 The php output is a list of {"version"} objects, previews adding "url" and
-"sha256". PLATFORM limits a run by hand to one
-platform's runners, so a test on a branch doesn't take every Mac runner.
+"sha256". When php.net's pre-release feed fails, the run warns and builds
+no previews, so the stable releases still go out. PLATFORM limits a run by
+hand to one platform's runners, so a test on a branch doesn't take every
+Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
 scripts/php-ext-windows.env. MariaDB builds for macOS only (DevKit takes
@@ -225,7 +227,7 @@ def php_ext_windows_targets(what: str, platform: str, published: set, pins: dict
     return out
 
 
-def latest_preview(pre_releases: dict, minor: str):
+def latest_preview(pre_releases: dict, minor: str) -> dict | None:
     """The newest pre-release of a minor that isn't out yet, from php.net's
     pre-release-builds.php?format=json (keyed by the coming release), as
     {"version", "url", "sha256"} for its .tar.xz, or None. It counts only
@@ -339,11 +341,46 @@ def latest_releases(minors: list) -> dict:
     return out
 
 
-def latest_previews(minors: list) -> dict:
-    """The newest pre-release of each preview minor that has one, from php.net."""
+def fetch_pre_releases():
+    """php.net's pre-release feed, parsed."""
     with urllib.request.urlopen(PRE_RELEASES, timeout=30) as r:
-        data = json.load(r)
-    return {m: p for m in minors if (p := latest_preview(data, m)) is not None}
+        return json.load(r)
+
+
+def latest_previews(minors: list, fetch=fetch_pre_releases) -> dict:
+    """The newest pre-release of each preview minor that has one, from php.net.
+    Best effort: when the feed can't be fetched or read, it warns on stderr
+    and returns no previews, so the stable releases still build.
+
+    >>> import sys; sys.stderr = sys.stdout
+    >>> feed = {"8.6.0": {"active": True, "release": {"version": "8.6.0RC3",
+    ...     "files": {"xz": {"path": "https://downloads.php.net/~b/php-8.6.0RC3.tar.xz", "sha256": "bb" * 32}}}}}
+    >>> list(latest_previews(["8.6", "8.7"], lambda: feed))
+    ['8.6']
+    >>> def down():
+    ...     raise OSError("HTTP Error 503: Service Unavailable")
+    >>> latest_previews(["8.6"], down)
+    ::warning::No PHP previews this run: php.net's pre-release feed failed (HTTP Error 503: Service Unavailable)
+    {}
+    >>> latest_previews(["8.6"], lambda: json.loads("<html>"))
+    ::warning::No PHP previews this run: php.net's pre-release feed failed (Expecting value: line 1 column 1 (char 0))
+    {}
+    >>> latest_previews(["8.6"], lambda: ["not", "a", "dict"])
+    ::warning::No PHP previews this run: php.net's pre-release feed failed (not a JSON object)
+    {}
+    >>> latest_previews(["8.6"], lambda: {"8.6.0": {"release": ["odd"]}})
+    ::warning::No PHP previews this run: php.net's pre-release feed failed ('list' object has no attribute 'get')
+    {}
+    >>> sys.stderr = sys.__stderr__
+    """
+    try:
+        data = fetch()
+        if not isinstance(data, dict):
+            raise ValueError("not a JSON object")
+        return {m: p for m in minors if (p := latest_preview(data, m)) is not None}
+    except (OSError, ValueError, TypeError, AttributeError) as e:
+        print(f"::warning::No PHP previews this run: php.net's pre-release feed failed ({e})", file=sys.stderr)
+        return {}
 
 
 def main() -> None:
