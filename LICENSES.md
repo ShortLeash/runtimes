@@ -140,7 +140,7 @@ MariaDB Server and its client programs for macOS. The server uses its bundled wo
 
 ## PostGIS
 
-PostGIS for macOS, built without raster support (no GDAL), for each Postgres version DevKit installs. libxml2, SQLite and libc++ are macOS's own, linked from the system. Each archive carries PostGIS's `COPYING` and `LICENSE.TXT` and the licences of GEOS, PROJ, json-c and protobuf-c in `doc/`.
+PostGIS for macOS and Windows x64, built without raster support (no GDAL), for each Postgres version DevKit installs. On macOS, libxml2, SQLite and libc++ are macOS's own, linked from the system. On Windows, built with MSYS2's GCC, libxml2 and SQLite are built from source and linked in too, with GCC's C++ runtime, winpthreads and the mingw-w64 runtime, so the modules import nothing but `postgres.exe` and Windows' own DLLs. Each archive carries PostGIS's `COPYING` and `LICENSE.TXT` and the licences of everything linked into it in `doc/`; Windows archives also list the MSYS2 packages of the runtime in `doc/toolchain.txt`.
 
 | Component | Licence |
 |---|---|
@@ -150,8 +150,13 @@ PostGIS for macOS, built without raster support (no GDAL), for each Postgres ver
 | proj.db | PROJ's data, including the EPSG dataset under the EPSG terms of use |
 | json-c | MIT |
 | protobuf-c | BSD-2-Clause |
+| libxml2 (Windows) | MIT |
+| SQLite (Windows) | Public domain |
+| GCC's runtime, libgcc and libstdc++ (Windows) | GPL-3.0-or-later with the GCC Runtime Library Exception |
+| winpthreads (Windows) | MIT, with parts under BSD-3-Clause |
+| mingw-w64 runtime (Windows start-up code and libmingwex) | ZPL-2.1-style mingw-w64 licence, with parts under other permissive licences listed in its `COPYING.MinGW-w64-runtime.txt` |
 
-GEOS, PROJ, json-c and protobuf-c are linked statically into the PostGIS module. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c and protobuf-c tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis.env`), which rebuild against changed copies. A build is never released without it.
+GEOS, PROJ, json-c and protobuf-c (and on Windows libxml2 and SQLite) are linked statically into the PostGIS modules. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c, protobuf-c, libxml2 and SQLite tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis-windows.sh`, `scripts/postgis.env`), which rebuild against changed copies. A build is never released without it, nor with a sources file that lacks the script that made it. GCC's runtime, winpthreads and the mingw-w64 runtime are the compiler's own libraries (the GPL's System Libraries); their sources are MSYS2's, at the versions in `doc/toolchain.txt`.
 
 ## libwebrtc
 
