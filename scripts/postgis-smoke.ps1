@@ -102,9 +102,10 @@ try {
   if ($got -ne 'POINT(0 0)') { throw "ST_Transform to EPSG:3857 answered '$got', not POINT(0 0)" }
   $codes = Sql "SELECT count(*) FROM postgis_srs_codes('EPSG')"
   if ([int]$codes -le 1000) { throw "PROJ's database lists $codes EPSG codes" }
-  # GEOS: a bow tie isn't valid, and a buffered point has an area near pi.
+  # GEOS: a bow tie isn't valid, and a point buffered by 1 is a 32-sided
+  # polygon of area 3.1214.
   $got = Sql "SELECT ST_IsValid('POLYGON((0 0,1 1,1 0,0 1,0 0))'::geometry), round(ST_Area(ST_Buffer('POINT(0 0)'::geometry, 1))::numeric, 2)"
-  if ($got -ne 'f|3.14') { throw "GEOS answered '$got', not f|3.14" }
+  if ($got -ne 'f|3.12') { throw "GEOS answered '$got', not f|3.12" }
   $got = Sql 'SELECT length(ST_AsMVT(q)) > 0 FROM (SELECT 1 AS id, ST_AsMVTGeom(ST_MakePoint(0,0), ST_MakeEnvelope(-1,-1,1,1)) AS geom) q'
   if ($got -ne 't') { throw "ST_AsMVT answered '$got', not t" }
   # FlatGeobuf is PostGIS's C++ code, with the C++ runtime linked in.
