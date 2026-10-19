@@ -156,8 +156,11 @@ try {
       # configure.bat only warns about an option it doesn't know, and then
       # builds nothing for it.
       if (@($configured) -match 'invalid, and therefore ignored') { throw "${ext}: configure.bat doesn't know $($configure -join ' ')" }
+      # <EXT>_CL: compiler options the extension needs that its config.w32
+      # doesn't pass; cl reads them from the CL variable.
+      $env:CL = Pin $ext 'cl'
       nmake /NOLOGO
-    } finally { Pop-Location }
+    } finally { Pop-Location; Remove-Item Env:CL -ErrorAction SilentlyContinue }
     if (-not (Test-Path "$dir\x64\Release\php_$ext.dll")) {
       $found = (Get-ChildItem -Recurse -Filter 'php_*.dll' $dir | ForEach-Object { $_.FullName }) -join ', '
       throw "${ext}: nmake made no x64\Release\php_$ext.dll (found: $found)"
@@ -215,6 +218,7 @@ foreach ($ext in $wanted) {
     php_sdk = [ordered]@{ tag = $sdkTag; commit = $sdkCommit }
     cl = $cl
     configure = (Pin $ext 'configure')
+    cl_options = (Pin $ext 'cl')
     php_m = @($modules | Where-Object { $_ })
   })
 
