@@ -117,8 +117,17 @@ $sdk = "$work\sdk"
 
 # Each extension's source in src-<ext>: a git tag at its pinned commit, or a
 # PECL tarball at its pinned SHA-256 (PECL publishes no checksum). Then the
-# patches <EXT>_PATCHES names from scripts\php-ext-patches, if any.
+# patches <EXT>_PATCHES names from scripts\php-ext-patches, if any, and the
+# notices <EXT>_NOTICES names into notices-<ext>, each at its pinned SHA-256.
 function Pecl-Url([string]$ext) { "https://pecl.php.net/get/$ext-$(Pin $ext 'version').tgz" }
+# <EXT>_NOTICE_<NAME> for each name in <EXT>_NOTICES: <file> <URL> <SHA-256>.
+function Notices([string]$ext) {
+  foreach ($name in (Pin $ext 'notices').Split(' ', [StringSplitOptions]::RemoveEmptyEntries)) {
+    $spec = @((Pin $ext "notice_$name").Split(' ', [StringSplitOptions]::RemoveEmptyEntries))
+    if ($spec.Count -ne 3) { throw "${ext}: $("${ext}_notice_$name".ToUpper()) in php-ext-windows.env needs <file> <URL> <SHA-256>" }
+    [ordered]@{ file = $spec[0]; url = $spec[1]; sha256 = $spec[2].ToLower() }
+  }
+}
 foreach ($ext in $wanted) {
   if ((Pin $ext 'source') -eq 'pecl') {
     $version = Pin $ext 'version'; $want = (Pin $ext 'sha256').ToLower()
@@ -139,6 +148,13 @@ foreach ($ext in $wanted) {
     $file = Join-Path $PSScriptRoot "php-ext-patches\$patch"
     if (-not (Test-Path $file)) { throw "${ext}: no $patch in scripts\php-ext-patches" }
     git -C "$work\src-$ext" apply --verbose $file
+  }
+  foreach ($notice in (Notices $ext)) {
+    $dest = Join-Path "$work\notices-$ext" $notice.file
+    New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+    Invoke-WebRequest -OutFile $dest $notice.url
+    $got = Sha256 $dest
+    if ($got -ne $notice.sha256) { throw "${ext}: $($notice.url) has SHA-256 $got, not the pinned $($notice.sha256)" }
   }
 }
 
@@ -218,11 +234,17 @@ foreach ($ext in $wanted) {
   }
   Write-Output "php_$ext.dll loads into PHP $full (php -m lists $ext)"
 
-  # 6. The licence and BUILDINFO.json beside the DLL.
+  # 6. The licence, the notices <EXT>_NOTICES names and BUILDINFO.json beside
+  # the DLL.
   $licence = @('LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING') |
     ForEach-Object { "$dir\$_"; "$src\$_" } | Where-Object { Test-Path $_ } | Select-Object -First 1
   if (-not $licence) { throw "${ext}: no LICENSE or COPYING in its source" }
   Copy-Item $licence "$stage\licenses\php_$ext\LICENSE"
+  $notices = @(Notices $ext)
+  if ($notices) { Copy-Item -Recurse "$work\notices-$ext\*" "$stage\licenses\php_$ext\" }
+  foreach ($notice in $notices) {
+    if (-not (Test-Path "$stage\licenses\php_$ext\$($notice.file)")) { throw "${ext}: the zip would lack $($notice.file)" }
+  }
   $source = if ((Pin $ext 'source') -eq 'pecl') {
     [ordered]@{ url = (Pecl-Url $ext); sha256 = (Pin $ext 'sha256').ToLower(); subdir = $sub }
   } else {
@@ -240,6 +262,7 @@ foreach ($ext in $wanted) {
     cl_options = (Pin $ext 'cl')
     patches = @((Pin $ext 'patches').Split(' ', [StringSplitOptions]::RemoveEmptyEntries) |
       ForEach-Object { [ordered]@{ file = $_; sha256 = (Sha256 (Join-Path $PSScriptRoot "php-ext-patches\$_")) } })
+    notices = $notices
     php_m = @($modules | Where-Object { $_ })
   })
 

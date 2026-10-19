@@ -70,15 +70,15 @@ Built against windows.php.net's devel pack for each PHP version, and load-tested
 | opentelemetry | Apache-2.0 | [open-telemetry/opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) |
 | grpc | Apache-2.0 | [PECL's grpc tarball](https://pecl.php.net/package/grpc) |
 
-grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL tarball carries in `third_party/`. Its own `LICENSE` is in each zip. It doesn't use c-ares on Windows.
+grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL tarball carries in `third_party/`. It doesn't use c-ares on Windows. Each zip's `licenses/php_grpc/` holds grpc's `LICENSE` and `NOTICE.txt` and each library's licence, taken from grpc's v1.84.0 tag and the commits it pins for its submodules.
 
 | Library | Licence |
 |---|---|
-| gRPC core | Apache-2.0 |
+| gRPC core, with code generated from the envoy, xds, udpa, cel-spec, googleapis, grpc-proto and protoc-gen-validate protos | Apache-2.0 |
 | abseil-cpp | Apache-2.0 |
-| BoringSSL | Apache-2.0; its fiat-crypto parts MIT, Apache-2.0 or BSD-1-Clause |
+| BoringSSL, with its fiat-crypto parts | Apache-2.0 |
 | re2 | BSD-3-Clause |
-| upb | BSD-3-Clause |
+| upb and code generated from protobuf's own types (protobuf) | BSD-3-Clause |
 | address_sorting | BSD-3-Clause |
 | utf8_range | MIT |
 | xxHash | BSD-2-Clause |
