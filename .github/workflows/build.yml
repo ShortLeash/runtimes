@@ -4,7 +4,8 @@
 # local AI engines (transcribe.cpp and llama.cpp) for DevKit, and attaches
 # them to this repository's releases with a build attestation. DevKit's own
 # publishing verifies each file against that attestation before it signs and
-# serves it.
+# serves it. MariaDB and PostGIS releases also carry the GPL sources they were
+# built from (the sources job).
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
@@ -74,6 +75,7 @@ jobs:
       mariadb: ${{ steps.plan.outputs.mariadb }}
       postgis: ${{ steps.plan.outputs.postgis }}
       postgis_windows: ${{ steps.plan.outputs.postgis_windows }}
+      sources: ${{ steps.plan.outputs.sources }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -366,14 +368,39 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  # The complete sources of the GPL builds, attached to their releases (GPLv2
+  # section 3(a)): one job per thing, so each sources file comes from exactly
+  # one job.
+  sources:
+    needs: plan
+    if: needs.plan.outputs.sources != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        what: ${{ fromJSON(needs.plan.outputs.sources) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Collect the ${{ matrix.what }} sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/sources.sh ${{ matrix.what }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sources-${{ matrix.what }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis, sources]
     # Release what built; a build that failed or timed out keeps its last
     # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.mariadb.result != 'skipped' || needs.postgis.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.mariadb.result != 'skipped' || needs.postgis.result != 'skipped' || needs.sources.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

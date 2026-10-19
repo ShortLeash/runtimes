@@ -15,7 +15,8 @@ PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
 scripts/php-ext-windows.env. MariaDB builds for macOS only (DevKit takes
 Windows MariaDB from archive.mariadb.org), and PostGIS for macOS
-(postgis) and Windows (postgis_windows), for every Postgres major.
+(postgis) and Windows (postgis_windows), for every Postgres major. Either
+also collects its GPL sources, once per run on Linux (sources).
 """
 
 import json
@@ -118,6 +119,21 @@ def flags(what: str, platform: str) -> dict:
         "postgis": mac and what in ("all", "postgis"),
         "postgis_windows": windows and what in ("all", "postgis"),
     }
+
+
+def sources(built: dict) -> list:
+    """The GPL sources a run collects (scripts/sources.sh), one job each, for
+    the builds flags() turned on: their releases carry them.
+
+    >>> sources(flags("all", "all"))
+    ['mariadb', 'postgis']
+    >>> sources(flags("postgis", "windows")), sources(flags("mariadb", "windows")), sources(flags("php", "all"))
+    (['postgis'], [], [])
+    """
+    out = ["mariadb"] if built["mariadb"] else []
+    if built["postgis"] or built["postgis_windows"]:
+        out.append("postgis")
+    return out
 
 
 def pin(pins: dict, ext: str, key: str, minor: str) -> str:
@@ -250,8 +266,10 @@ def main() -> None:
     print(f"libwebrtc={json.dumps(libwebrtc_targets(what, platform))}")
     print(f"voice_engines={json.dumps(voice_engines_targets(what, platform))}")
     print(f"php_ext_windows={json.dumps(php_ext_windows_targets(what, platform, have, pins, windows_minors))}")
-    for key, value in flags(what, platform).items():
+    built = flags(what, platform)
+    for key, value in built.items():
         print(f"{key}={str(value).lower()}")
+    print(f"sources={json.dumps(sources(built))}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 
