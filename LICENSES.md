@@ -56,6 +56,19 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | unixODBC | sqlsrv, pdo_sqlsrv | LGPL-2.1-or-later |
 | zlib | zlib and most of the above | Zlib |
 
+## PHP extensions for Windows
+
+Built against windows.php.net's devel pack for each PHP version, and load-tested in that version's official PHP.
+
+| Extension | Licence | Source |
+|---|---|---|
+| apcu | PHP License 3.01 | [krakjoe/apcu](https://github.com/krakjoe/apcu) |
+| igbinary | BSD-3-Clause | [igbinary/igbinary](https://github.com/igbinary/igbinary) |
+| msgpack | BSD-3-Clause | [msgpack/msgpack-php](https://github.com/msgpack/msgpack-php) |
+| pcov | PHP License 3.01 | [krakjoe/pcov](https://github.com/krakjoe/pcov) |
+| redis | PHP License 3.01 | [phpredis/phpredis](https://github.com/phpredis/phpredis) |
+| opentelemetry | Apache-2.0 | [open-telemetry/opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) |
+
 ## Ruby
 
 | Component | Licence |
