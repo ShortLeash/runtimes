@@ -156,6 +156,12 @@ try {
       # configure.bat only warns about an option it doesn't know, and then
       # builds nothing for it.
       if (@($configured) -match 'invalid, and therefore ignored') { throw "${ext}: configure.bat doesn't know $($configure -join ' ')" }
+      # Make the folder of every object the Makefile builds. config.w32 can
+      # leave some out: grpc's drops each one with "grpc" in its name and makes
+      # them where php-src's own tree would have them, not where phpize builds.
+      Select-String -Path Makefile -Pattern '\$\(BUILD_DIR\)\\(\S+)\\[^\\\s]+\.obj' -AllMatches |
+        ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique |
+        ForEach-Object { New-Item -ItemType Directory -Force -Path "$dir\x64\Release\$_" | Out-Null }
       # <EXT>_CL: compiler options the extension needs that its config.w32
       # doesn't pass; cl reads them from the CL variable.
       $env:CL = Pin $ext 'cl'
