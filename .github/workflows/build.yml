@@ -88,7 +88,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python3 -m doctest scripts/plan.py scripts/tag.py
+          python3 -m doctest scripts/plan.py scripts/tag.py scripts/check_workflow.py
+          # Every build job must be in the release's needs and if:, and every
+          # plan output a job reads declared. The check reads this file with
+          # PyYAML: the runner's, or a pinned one if the image drops it.
+          py=python3
+          if ! python3 -c 'import yaml' 2>/dev/null; then
+            python3 -m venv "$RUNNER_TEMP/yaml"
+            "$RUNNER_TEMP/yaml/bin/pip" install --quiet --only-binary=:all: PyYAML==6.0.3
+            py="$RUNNER_TEMP/yaml/bin/python"
+          fi
+          "$py" scripts/check_workflow.py --require-yaml
           gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].assets[].name' > published.txt
           python3 scripts/plan.py "$WHAT" published.txt $PHP_MINORS | tee -a "$GITHUB_OUTPUT"
       - name: Keep the schedule on
