@@ -3,7 +3,7 @@
 Build scripts for the runtimes [DevKit](https://getdevkit.app) installs, built on GitHub Actions and attached to this repository's releases:
 
 - **PHP 8.2 to 8.5** for macOS (Apple silicon and Intel): static CLI and php-fpm programs built with [static-php-cli](https://github.com/crazywhalecc/static-php-cli), with the extensions in [`scripts/php-extensions.txt`](scripts/php-extensions.txt).
-- **PHP extensions for Windows** (8.0 to 8.5): apcu, igbinary, msgpack, pcov, redis and opentelemetry for windows.php.net's official PHP (non-thread-safe, x64), built against each version's devel pack as one DLL per PHP version.
+- **PHP extensions for Windows** (8.0 to 8.5): apcu, igbinary, msgpack, pcov, redis and opentelemetry for windows.php.net's official PHP (non-thread-safe, x64), built against each version's devel pack as one DLL per PHP version (igbinary up to 8.4 and opentelemetry from 8.1 for now).
 - **Ruby 3.2 to 4.0**: relocatable builds for macOS with OpenSSL and libyaml linked in, and RubyInstaller's Ruby repackaged as a zip for Windows.
 - **pgvector** for every PostgreSQL version DevKit installs, on macOS and Windows.
 - **memcached** for macOS, with libevent linked in.
