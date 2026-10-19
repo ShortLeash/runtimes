@@ -194,12 +194,27 @@ for t in mariadb-test mariadb-test-embedded mariadb-client-test mariadb-client-t
 done
 find "$stage" -type f -exec sh -c 'file "$1" | grep -q Mach-O && echo "$1"' _ {} \; |
   while read -r f; do strip -x "$f"; done
-# MariaDB's, GnuTLS's and Nettle's licences and notices travel with the
-# programs.
-mkdir -p "$stage/share/doc/gnutls" "$stage/share/doc/nettle"
-cp src/COPYING src/THIRDPARTY "$stage/share/doc/"
-cp "gnutls-$MARIADB_GNUTLS_VERSION/COPYING.LESSERv2" "$stage/share/doc/gnutls/"
-cp "nettle-$MARIADB_NETTLE_VERSION"/{COPYINGv2,COPYINGv3,COPYING.LESSERv3} "$stage/share/doc/nettle/"
+# The licences and notices of everything built in travel with the programs:
+# MariaDB's, Connector/C's, wolfSSL's (with its exception for MariaDB),
+# GnuTLS's, Nettle's, and fmt's and PCRE2's from the checked zips (MariaDB's
+# THIRDPARTY has neither). share/doc/COPYING is the GPL-2.0 text that
+# Nettle's and GnuTLS's included unistring are used under.
+doc="$stage/share/doc"
+mkdir -p "$doc"/{connector-c,wolfssl,gnutls,nettle,fmt,pcre2}
+cp src/COPYING src/THIRDPARTY "$doc/"
+cp src/libmariadb/COPYING.LIB "$doc/connector-c/"
+cp src/extra/wolfssl/wolfssl/{COPYING,LICENSING} "$doc/wolfssl/"
+cp "gnutls-$MARIADB_GNUTLS_VERSION/COPYING.LESSERv2" "$doc/gnutls/"
+cp "nettle-$MARIADB_NETTLE_VERSION"/{COPYINGv2,COPYINGv3,COPYING.LESSERv3} "$doc/nettle/"
+unzip -p "$fmt_zip" "fmt-$MARIADB_FMT_VERSION/LICENSE" >"$doc/fmt/LICENSE"
+unzip -p "$pcre2_zip" "pcre2-$MARIADB_PCRE2_VERSION/LICENCE.md" >"$doc/pcre2/LICENCE.md"
+notices=(COPYING THIRDPARTY connector-c/COPYING.LIB wolfssl/COPYING wolfssl/LICENSING
+  gnutls/COPYING.LESSERv2 nettle/COPYINGv2 nettle/COPYINGv3 nettle/COPYING.LESSERv3
+  fmt/LICENSE pcre2/LICENCE.md)
+grep -q 'MariaDB Server' "$doc/wolfssl/LICENSING" && grep -q 'GPLv2' "$doc/wolfssl/LICENSING" ||
+  { echo "wolfSSL's LICENSING no longer names MariaDB Server's GPLv2 exception" >&2; exit 1; }
+grep -q 'Permission is hereby granted' "$doc/fmt/LICENSE" || { echo "fmt's LICENSE isn't its MIT licence" >&2; exit 1; }
+grep -q 'BSD' "$doc/pcre2/LICENCE.md" || { echo "PCRE2's LICENCE.md isn't its BSD licence" >&2; exit 1; }
 for p in mariadbd mariadb mariadb-dump mariadb-install-db my_print_defaults mariadb-admin; do
   [ -e "$stage/bin/$p" ] || { echo "The build has no bin/$p" >&2; exit 1; }
 done
@@ -298,5 +313,11 @@ fi
 
 check_macos_minimum "$stage"
 
-tar -C "$stage" -czf "$out/mariadb-$version-macos-$arch.tar.gz" bin share lib
+archive="$out/mariadb-$version-macos-$arch.tar.gz"
+tar -C "$stage" -czf "$archive" bin share lib
+# The archive carries every licence and notice.
+listing="$(tar -tzf "$archive")"
+for f in "${notices[@]}"; do
+  grep -qx "share/doc/$f" <<<"$listing" || { rm -f "$archive"; echo "The archive has no share/doc/$f" >&2; exit 1; }
+done
 echo "Built MariaDB $version on macos-$arch"

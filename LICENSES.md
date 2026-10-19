@@ -124,7 +124,7 @@ sqlsrv's and pdo_sqlsrv's zips hold msphpsql's `LICENSE` from the tag of their v
 
 ## MariaDB
 
-MariaDB Server and its client programs for macOS. The server uses its bundled wolfSSL; the client library, MariaDB Connector/C, uses GnuTLS with Nettle, built static (Connector/C has no wolfSSL support). The client's line editing is macOS's own libedit, linked from the system, so no GNU readline is in the build. Each archive carries MariaDB's `COPYING` and `THIRDPARTY` notices in `share/doc/`, and GnuTLS's and Nettle's licences in `share/doc/gnutls/` and `share/doc/nettle/`. The sources of each version (MariaDB, GnuTLS and Nettle) are attached to its `mariadb-<version>` release as `mariadb-<version>-sources.tar.gz`.
+MariaDB Server and its client programs for macOS. The server uses its bundled wolfSSL; the client library, MariaDB Connector/C, uses GnuTLS with Nettle, built static (Connector/C has no wolfSSL support). The client's line editing is macOS's own libedit, linked from the system, so no GNU readline is in the build. Each archive carries MariaDB's `COPYING` and `THIRDPARTY` notices in `share/doc/`, and the licences of Connector/C, wolfSSL (with its exception for MariaDB), GnuTLS, Nettle, fmt and PCRE2 in `share/doc/connector-c/`, `wolfssl/`, `gnutls/`, `nettle/`, `fmt/` and `pcre2/`. The sources of each version (MariaDB, GnuTLS and Nettle) are attached to its `mariadb-<version>` release as `mariadb-<version>-sources.tar.gz`.
 
 | Component | Licence |
 |---|---|
