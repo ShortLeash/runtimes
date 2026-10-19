@@ -312,8 +312,11 @@ cp "$prefix/share/proj/proj.db" "$stage/proj/"
 # From the checked source tarballs, and, for GCC's runtime, winpthreads and
 # mingw-w64's start-up code, from their MSYS2 packages.
 licences=(postgis/COPYING postgis/LICENSE.TXT geos/COPYING proj/COPYING json-c/COPYING protobuf-c/LICENSE
-  libxml2/Copyright sqlite/NOTICE toolchain.txt)
-mkdir -p "$stage/doc"/{postgis,geos,proj,json-c,protobuf-c,libxml2,sqlite,mingw-w64}
+  libxml2/Copyright sqlite/NOTICE postgresql/COPYRIGHT toolchain.txt)
+mkdir -p "$stage/doc"/{postgis,geos,proj,json-c,protobuf-c,libxml2,sqlite,postgresql,mingw-w64}
+# Postgres's: its headers' inline code, libpgport and libpgcommon are in the
+# modules.
+cp "postgresql-$pgsrc_version/COPYRIGHT" "$stage/doc/postgresql/"
 cp "postgis-$POSTGIS_VERSION/COPYING" "postgis-$POSTGIS_VERSION/LICENSE.TXT" "$stage/doc/postgis/"
 cp "geos-$GEOS_VERSION/COPYING" "$stage/doc/geos/"
 cp "proj-$PROJ_VERSION/COPYING" "$stage/doc/proj/"
@@ -350,4 +353,5 @@ for f in "${licences[@]}"; do
 done
 grep -q 'GNU GENERAL PUBLIC LICENSE' "$stage/doc/postgis/COPYING" || { echo "doc/postgis/COPYING isn't the GPL" >&2; exit 1; }
 grep -q 'GNU LESSER GENERAL PUBLIC LICENSE' "$stage/doc/geos/COPYING" || { echo "doc/geos/COPYING isn't the LGPL" >&2; exit 1; }
+grep -q 'PostgreSQL Global Development Group' "$stage/doc/postgresql/COPYRIGHT" || { echo "doc/postgresql/COPYRIGHT isn't Postgres's licence" >&2; exit 1; }
 echo "Built PostGIS $POSTGIS_VERSION for Postgres $pg on windows-x86_64; scripts/postgis-smoke.ps1 checks it"
