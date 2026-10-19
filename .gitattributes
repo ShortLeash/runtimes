@@ -2,3 +2,4 @@
 models/templates/*.jinja -text
 models/fixtures/*.wav binary
 models/licenses/*.txt -text
+scripts/php-ext-patches/*.patch -text

@@ -1,0 +1,27 @@
+grpc 1.84.0 wraps its PHP callback in a GNU statement expression for PHP 8.3
+and newer, which Visual C++ doesn't compile. Its one use ignores the result
+(call_credentials.c), so a do-while block does the same. Drop this once
+grpc's PHP extension compiles with Visual C++ again.
+
+--- a/src/php/ext/grpc/php7_wrapper.h
++++ b/src/php/ext/grpc/php7_wrapper.h
+@@ -156,16 +156,15 @@
+  * This wrapper disables the check for the duration of the callback.
+  */
+ #if PHP_VERSION_ID >= 80300
+-#define PHP_GRPC_CALL_FUNCTION(fci, fci_cache) ({ \
++#define PHP_GRPC_CALL_FUNCTION(fci, fci_cache) do { \
+   size_t old_allowed = EG(max_allowed_stack_size); \
+   void *old_limit = EG(stack_limit); \
+   EG(max_allowed_stack_size) = 0; \
+   EG(stack_limit) = 0; \
+-  int _res = zend_call_function(fci, fci_cache TSRMLS_CC); \
++  zend_call_function(fci, fci_cache TSRMLS_CC); \
+   EG(max_allowed_stack_size) = old_allowed; \
+   EG(stack_limit) = old_limit; \
+-  _res; \
+-})
++} while (0)
+ #else
+ #define PHP_GRPC_CALL_FUNCTION(fci, fci_cache) \
+   zend_call_function(fci, fci_cache TSRMLS_CC)
