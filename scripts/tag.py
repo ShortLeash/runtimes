@@ -3,6 +3,11 @@
 
 Usage: python3 scripts/tag.py <outputs folder>
 
+A MariaDB or PostGIS build is released only with its sources: when
+<name>-<version>-sources.tar.gz isn't among the outputs, the build is left
+out, named on stderr, and the script exits 1 after printing the rest, so the
+other builds still release and the run fails.
+
 A release holds one version of one thing for every platform: php-8.4.26 has
 the CLI and php-fpm for both Mac architectures, ruby-3.4.7 has macOS and
 Windows, pgvector-0.8.7 has every Postgres major on every platform, memcached-1.6.45
@@ -75,9 +80,64 @@ def tag(name: str) -> str:
     raise ValueError(f"{name}: not a build output")
 
 
+# Builds under the GPL (or linking LGPL code statically), whose releases must
+# carry the sources they were built from.
+WITH_SOURCES = ("mariadb", "postgis")
+
+
+def sources_for(name: str):
+    """The sources file a build's release must carry, or None.
+
+    >>> sources_for("mariadb-11.8.9-macos-aarch64.tar.gz")
+    'mariadb-11.8.9-sources.tar.gz'
+    >>> sources_for("postgis-3.6.4-pg14-windows-x86_64.zip")
+    'postgis-3.6.4-sources.tar.gz'
+    >>> sources_for("postgis-3.6.4-sources.tar.gz") is None, sources_for("pgvector-0.8.7-pg18-macos-aarch64.tar.gz") is None
+    (True, True)
+    """
+    release = tag(name)
+    if release.split("-")[0] in WITH_SOURCES and name != f"{release}-sources.tar.gz":
+        return f"{release}-sources.tar.gz"
+    return None
+
+
+def releases(names: list) -> tuple:
+    """Each output's release as (tag, name), and the builds withheld because
+    their sources aren't among the outputs.
+
+    >>> released, withheld = releases(["mariadb-11.8.9-macos-aarch64.tar.gz", "mariadb-11.8.9-sources.tar.gz",
+    ...     "mariadb-10.11.19-macos-x86_64.tar.gz", "postgis-3.6.4-pg18-macos-aarch64.tar.gz", "ruby-3.4.7-windows-x86_64.zip"])
+    >>> [name for _, name in released]
+    ['mariadb-11.8.9-macos-aarch64.tar.gz', 'mariadb-11.8.9-sources.tar.gz', 'ruby-3.4.7-windows-x86_64.zip']
+    >>> withheld
+    ['mariadb-10.11.19-macos-x86_64.tar.gz', 'postgis-3.6.4-pg18-macos-aarch64.tar.gz']
+    >>> releases(["postgis-3.6.4-sources.tar.gz"])
+    ([('postgis-3.6.4', 'postgis-3.6.4-sources.tar.gz')], [])
+    >>> releases(["mariadb-11.8.9-macos-aarch64.tar.gz", "notes.txt"])
+    Traceback (most recent call last):
+    ...
+    ValueError: notes.txt: not a build output
+    """
+    present = set(names)
+    released, withheld = [], []
+    for name in names:
+        sources = sources_for(name)
+        if sources is not None and sources not in present:
+            withheld.append(name)
+        else:
+            released.append((tag(name), name))
+    return released, withheld
+
+
 def main() -> None:
-    for path in sorted(p for p in pathlib.Path(sys.argv[1]).rglob("*") if p.is_file()):
-        print(tag(path.name), path)
+    paths = {p.name: p for p in sorted(pathlib.Path(sys.argv[1]).rglob("*")) if p.is_file()}
+    released, withheld = releases(sorted(paths))
+    for release, name in released:
+        print(release, paths[name])
+    for name in withheld:
+        print(f"{name}: not released, {sources_for(name)} isn't among the outputs", file=sys.stderr)
+    if withheld:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

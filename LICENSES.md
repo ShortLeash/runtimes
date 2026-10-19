@@ -124,7 +124,7 @@ sqlsrv's and pdo_sqlsrv's zips hold msphpsql's `LICENSE` from the tag of their v
 
 ## MariaDB
 
-MariaDB Server and its client programs for macOS. The server uses its bundled wolfSSL; the client library, MariaDB Connector/C, uses GnuTLS with Nettle, built static (Connector/C has no wolfSSL support). The client's line editing is macOS's own libedit, linked from the system, so no GNU readline is in the build. Each archive carries MariaDB's `COPYING` and `THIRDPARTY` notices in `share/doc/`, and the licences of Connector/C, wolfSSL (with its exception for MariaDB), GnuTLS, Nettle, fmt and PCRE2 in `share/doc/connector-c/`, `wolfssl/`, `gnutls/`, `nettle/`, `fmt/` and `pcre2/`. Each `mariadb-<version>` release also has `mariadb-<version>-sources.tar.gz`: MariaDB's source tarball, the fmt and PCRE2 zips its build compiles in, the GnuTLS and Nettle tarballs, and the scripts that build them (`scripts/lib.sh`, `scripts/mariadb.sh`, `scripts/mariadb.env`).
+MariaDB Server and its client programs for macOS. The server uses its bundled wolfSSL; the client library, MariaDB Connector/C, uses GnuTLS with Nettle, built static (Connector/C has no wolfSSL support). The client's line editing is macOS's own libedit, linked from the system, so no GNU readline is in the build. Each archive carries MariaDB's `COPYING` and `THIRDPARTY` notices in `share/doc/`, and the licences of Connector/C, wolfSSL (with its exception for MariaDB), GnuTLS, Nettle, fmt and PCRE2 in `share/doc/connector-c/`, `wolfssl/`, `gnutls/`, `nettle/`, `fmt/` and `pcre2/`. Each `mariadb-<version>` release also has `mariadb-<version>-sources.tar.gz`: MariaDB's source tarball, the fmt and PCRE2 zips its build compiles in, the GnuTLS and Nettle tarballs, and the scripts that build them (`scripts/lib.sh`, `scripts/mariadb.sh`, `scripts/mariadb.env`). A build is never released without it.
 
 | Component | Licence |
 |---|---|
@@ -151,7 +151,7 @@ PostGIS for macOS, built without raster support (no GDAL), for each Postgres ver
 | json-c | MIT |
 | protobuf-c | BSD-2-Clause |
 
-GEOS, PROJ, json-c and protobuf-c are linked statically into the PostGIS module. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c and protobuf-c tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis.env`), which rebuild against changed copies.
+GEOS, PROJ, json-c and protobuf-c are linked statically into the PostGIS module. Each `postgis-<version>` release also has `postgis-<version>-sources.tar.gz`: the PostGIS, GEOS, PROJ, json-c and protobuf-c tarballs and the scripts that build them (`scripts/lib.sh`, `scripts/postgis.sh`, `scripts/postgis.env`), which rebuild against changed copies. A build is never released without it.
 
 ## libwebrtc
 

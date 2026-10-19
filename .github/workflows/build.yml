@@ -370,7 +370,8 @@ jobs:
 
   # The complete sources of the GPL builds, attached to their releases (GPLv2
   # section 3(a)): one job per thing, so each sources file comes from exactly
-  # one job.
+  # one job. The release withholds a MariaDB or PostGIS build whose sources
+  # aren't among its files (scripts/tag.py).
   sources:
     needs: plan
     if: needs.plan.outputs.sources != '[]'
@@ -396,7 +397,8 @@ jobs:
   release:
     needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis, sources]
     # Release what built; a build that failed or timed out keeps its last
-    # release. A run that was cancelled releases nothing.
+    # release, and so does a MariaDB or PostGIS build whose sources didn't
+    # build. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
@@ -428,11 +430,16 @@ jobs:
         run: |
           set -euo pipefail
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          python3 scripts/tag.py outputs | while read -r tag file; do
+          # tag.py leaves out a MariaDB or PostGIS build whose sources aren't
+          # among the outputs; the rest attach, then the step fails.
+          status=0
+          python3 scripts/tag.py outputs >"$RUNNER_TEMP/releases.txt" || status=$?
+          while read -r tag file; do
             if ! gh release view "$tag" >/dev/null 2>&1; then
               gh release create "$tag" --title "$tag" --latest=false \
                 --notes "Built by $run_url. Verify a file with: gh attestation verify <file> --repo $GITHUB_REPOSITORY. Licences: see LICENSES.md."
             fi
             # A rebuild of the same version replaces its files.
             gh release upload "$tag" "$file" --clobber
-          done
+          done <"$RUNNER_TEMP/releases.txt"
+          exit "$status"
