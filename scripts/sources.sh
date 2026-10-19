@@ -11,9 +11,11 @@
 # its CMake builds in, the GnuTLS and Nettle tarballs linked into its client
 # library, and scripts/lib.sh, scripts/mariadb.sh and scripts/mariadb.env.
 # postgis writes out/postgis-<version>-sources.tar.gz, holding the PostGIS,
-# GEOS, PROJ, json-c and protobuf-c tarballs and scripts/lib.sh,
-# scripts/postgis.sh and scripts/postgis.env. Each also lists its files'
-# SHA-256 in SHA256SUMS. Runs on macOS and Linux.
+# GEOS, PROJ, json-c and protobuf-c tarballs, the libxml2 and SQLite tarballs
+# the Windows build also links in, and scripts/lib.sh, scripts/postgis.sh,
+# scripts/postgis-windows.sh and scripts/postgis.env: one file for the
+# builds of every platform. Each also lists its files' SHA-256 in SHA256SUMS.
+# Runs on macOS and Linux.
 set -euo pipefail
 
 if [ $# -ne 2 ] || { [ "$1" != mariadb ] && [ "$1" != postgis ]; }; then
@@ -40,10 +42,13 @@ was_fetched_with() { awk -v f="$1" '$2 == f {print $1}' "$work/checked" 2>/dev/n
 
 # pack NAME SCRIPT FILE...: writes out/NAME-sources.tar.gz with the files,
 # each copied and checked against the SHA-256 it was fetched with, and
-# scripts/lib.sh, scripts/SCRIPT.sh and scripts/SCRIPT.env.
+# scripts/lib.sh, scripts/SCRIPT.sh, scripts/SCRIPT.env and any other build
+# scripts named in $more_scripts.
+more_scripts=""
 pack() {
-  local name="$1" script="$2" f got want listing dir="$work/pack-$1"
+  local name="$1" script="$2" f got want listing dir="$work/pack-$1" scripts
   shift 2
+  scripts="lib.sh $script.sh $script.env $more_scripts"
   mkdir -p "$dir/scripts"
   for f in "$@"; do
     cp "$f" "$dir/"
@@ -54,15 +59,20 @@ pack() {
       exit 1
     fi
   done
-  cp "$here/lib.sh" "$here/$script.sh" "$here/$script.env" "$dir/scripts/"
+  # shellcheck disable=SC2086 # one script per word
+  for f in $scripts; do cp "$here/$f" "$dir/scripts/"; done
   (cd "$dir" && shasum -a 256 "$@" scripts/* >SHA256SUMS)
   # COPYFILE_DISABLE: macOS's tar would add its extended attributes.
   COPYFILE_DISABLE=1 tar -C "$dir" -czf "$out/$name-sources.tar.gz" SHA256SUMS "$@" scripts
   rm -rf "$dir"
   # The tarball lists every input and script.
   listing="$(tar -tzf "$out/$name-sources.tar.gz")"
-  for f in SHA256SUMS "$@" scripts/lib.sh "scripts/$script.sh" "scripts/$script.env"; do
+  for f in SHA256SUMS "$@"; do
     grep -qxF "$f" <<<"$listing" || { echo "$name-sources.tar.gz has no $f" >&2; exit 1; }
+  done
+  # shellcheck disable=SC2086 # one script per word
+  for f in $scripts; do
+    grep -qxF "scripts/$f" <<<"$listing" || { echo "$name-sources.tar.gz has no scripts/$f" >&2; exit 1; }
   done
   echo "Wrote $out/$name-sources.tar.gz"
 }
@@ -117,6 +127,8 @@ postgis() {
   local tarball="postgis-$POSTGIS_VERSION.tar.gz" geos="geos-$GEOS_VERSION.tar.bz2"
   local proj="proj-$PROJ_VERSION.tar.gz" jsonc="json-c-$JSONC_VERSION.tar.gz"
   local protobufc="protobuf-c-$PROTOBUFC_VERSION.tar.gz" published
+  local xml="libxml2-$LIBXML2_VERSION.tar.xz" sqlite xml_url
+  sqlite="$(basename "$SQLITE_TARBALL")"
   # The same checked fetches as scripts/postgis.sh.
   fetch_checked "https://download.osgeo.org/postgis/source/$tarball" "$POSTGIS_SHA256" "$tarball"
   published="$(curl -fsSL "https://download.osgeo.org/postgis/source/$tarball.md5" | awk '{print $1}')"
@@ -134,7 +146,19 @@ postgis() {
   fetch_checked "https://github.com/protobuf-c/protobuf-c/releases/download/v$PROTOBUFC_VERSION/$protobufc" \
     "$PROTOBUFC_SHA256" "$protobufc"
   fetched "$protobufc"
-  pack "postgis-$POSTGIS_VERSION" postgis "$tarball" "$geos" "$proj" "$jsonc" "$protobufc"
+  # The same checked fetches as scripts/postgis-windows.sh.
+  xml_url="https://download.gnome.org/sources/libxml2/${LIBXML2_VERSION%.*}/$xml"
+  fetch_checked "$xml_url" "$LIBXML2_SHA256" "$xml"
+  published="$(curl -fsSL "${xml_url%.tar.xz}.sha256sum" | awk -v f="$xml" '$2 == f {print $1}')"
+  if [ "$published" != "$LIBXML2_SHA256" ]; then
+    echo "$xml: download.gnome.org lists SHA-256 '${published:-none}', not the pinned $LIBXML2_SHA256" >&2
+    exit 1
+  fi
+  fetched "$xml"
+  fetch_checked "https://sqlite.org/$SQLITE_TARBALL" "$SQLITE_SHA256" "$sqlite"
+  fetched "$sqlite"
+  more_scripts="postgis-windows.sh"
+  pack "postgis-$POSTGIS_VERSION" postgis "$tarball" "$geos" "$proj" "$jsonc" "$protobufc" "$xml" "$sqlite"
 }
 
 "$what"
