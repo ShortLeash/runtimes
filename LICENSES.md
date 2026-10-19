@@ -58,7 +58,7 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 
 ## PHP extensions for Windows
 
-Built against windows.php.net's devel pack for each PHP version, and load-tested in that version's official PHP.
+Built against windows.php.net's devel pack for each PHP version, or repackaged unchanged from the DLLs an extension's own project publishes, and load-tested in that version's official PHP.
 
 | Extension | Licence | Source |
 |---|---|---|
@@ -69,6 +69,9 @@ Built against windows.php.net's devel pack for each PHP version, and load-tested
 | redis | PHP License 3.01 | [phpredis/phpredis](https://github.com/phpredis/phpredis) |
 | opentelemetry | Apache-2.0 | [open-telemetry/opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) |
 | grpc | Apache-2.0 | [PECL's grpc tarball](https://pecl.php.net/package/grpc) |
+| mongodb | Apache-2.0 | [mongodb/mongo-php-driver](https://github.com/mongodb/mongo-php-driver)'s own Windows DLLs, unchanged |
+| sqlsrv | MIT | [microsoft/msphpsql](https://github.com/microsoft/msphpsql)'s DLLs, signed by Microsoft, unchanged |
+| pdo_sqlsrv | MIT | [microsoft/msphpsql](https://github.com/microsoft/msphpsql)'s DLLs, signed by Microsoft, unchanged |
 
 grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL tarball carries in `third_party/`. It doesn't use c-ares on Windows. Each zip's `licenses/php_grpc/` holds grpc's `LICENSE` and `NOTICE.txt` and each library's licence, taken from grpc's v1.84.0 tag and the commits it pins for its submodules.
 
@@ -83,6 +86,19 @@ grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL
 | utf8_range | MIT |
 | xxHash | BSD-2-Clause |
 | zlib | Zlib |
+
+mongodb's DLL compiles in libbson and libmongoc (from mongo-c-driver) and libmongocrypt, with the code they carry; it uses the OpenSSL in PHP's own folder. Each zip's `licenses/php_mongodb/` holds the driver's `LICENSE` and `THIRD_PARTY_NOTICES` and these libraries' licences and notices, taken from the driver's tag and the commits it pins for its submodules.
+
+| Library | Licence |
+|---|---|
+| libbson, libmongoc and their common code (mongo-c-driver) | Apache-2.0 (its base64 code ISC, its MD5 code Zlib) |
+| libmongocrypt, with kms-message | Apache-2.0 (kms-message's base64 code ISC) |
+| jsonsl | MIT |
+| utf8proc | MIT |
+| uthash | BSD-1-Clause |
+| php_array_api.h | PHP License 3.01 |
+
+sqlsrv's and pdo_sqlsrv's zips hold msphpsql's `LICENSE` from the tag of their version. Both use Windows' own ODBC (`odbc32.dll`); connecting to SQL Server also needs Microsoft's ODBC Driver for SQL Server, which isn't included.
 
 ## Ruby
 

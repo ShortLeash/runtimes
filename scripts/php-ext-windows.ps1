@@ -1,17 +1,22 @@
 # Builds PHP extensions for windows.php.net's official PHP (non-thread-safe,
 # x64) for one PHP minor, at the pins in php-ext-windows.env, against that
 # minor's devel pack, and checks each one loads into the official PHP. Sources
-# are a git tag at a pinned commit, or a PECL tarball at a pinned SHA-256. Run
-# from a Visual Studio developer prompt whose compiler matches the minor's
-# (cl 19.20 to 19.29 for vs16, 19.30 to 19.49 for vs17).
+# are a git tag at a pinned commit, or a PECL tarball at a pinned SHA-256.
+# Extensions whose own project publishes Windows DLLs (mongodb, and Microsoft's
+# sqlsrv and pdo_sqlsrv) aren't built: their DLL is checked against GitHub's
+# digest or a pinned SHA-256 (and Microsoft's against its Authenticode
+# signature), load-tested the same way and repackaged unchanged. Run from a
+# Visual Studio developer prompt whose compiler matches the minor's (cl 19.20
+# to 19.29 for vs16, 19.30 to 19.49 for vs17); only building needs it.
 #
 #   pwsh scripts/php-ext-windows.ps1 -Minor 8.4 -Exts "apcu redis" -Out out
 #
 # Writes out\php-ext-<ext>-<version>-php<minor>-nts-<vs>-windows-x86_64.zip
 # for each extension, holding ext\php_<ext>.dll and licenses\php_<ext>\ (the
-# extension's licence and BUILDINFO.json, which records the PHP release, the
-# devel pack's SHA-256, the source and its commit, the cl version and what
-# php -m listed). Nothing else, so the zips extract into one PHP folder.
+# extension's licence and notices, and BUILDINFO.json, which records the PHP
+# release, the source and how it was checked, for a build the devel pack's
+# SHA-256 and the cl version, and what php -m listed). Nothing else, so the
+# zips extract into one PHP folder.
 param(
   [Parameter(Mandatory)][string]$Minor,
   [Parameter(Mandatory)][string]$Exts,
@@ -41,6 +46,9 @@ function Pin([string]$ext, [string]$key) {
   return ''
 }
 
+# mongodb, sqlsrv and pdo_sqlsrv: their own DLLs, checked and repackaged.
+function Repackaged([string]$ext) { @('dll', 'microsoft') -contains (Pin $ext 'source') }
+
 # The Visual Studio windows.php.net builds this minor with (plan.py's compiler).
 $compiler = if ([version]$Minor -le [version]'8.3') { 'vs16' } else { 'vs17' }
 
@@ -50,13 +58,22 @@ if (-not $wanted) { throw 'No extensions named; pass -Exts "apcu redis"' }
 foreach ($ext in $wanted) {
   if ($known -notcontains $ext) { throw "${ext}: not in PHP_EXT_WINDOWS in php-ext-windows.env" }
   if ((Pin $ext 'skip').Split(' ') -contains $Minor) { throw "${ext}: php-ext-windows.env skips PHP $Minor" }
-  if (@('git', 'pecl') -notcontains (Pin $ext 'source')) { throw "${ext}: source '$(Pin $ext 'source')' isn't one this script builds" }
+  $need = switch (Pin $ext 'source') {
+    'git' { @('repo', 'tag', 'commit') }
+    'pecl' { @('sha256') }
+    # The release's tag is the version; the SHA-256 is needed only where
+    # GitHub publishes no digest, which shows when the release is read.
+    'dll' { @('repo', 'asset') }
+    'microsoft' { @('repo', 'tag', 'asset') }
+    default { throw "${ext}: source '$(Pin $ext 'source')' isn't one this script knows" }
+  }
   if (-not (Pin $ext 'version')) { throw "${ext}: no version pinned for PHP $Minor in php-ext-windows.env" }
-  $need = if ((Pin $ext 'source') -eq 'git') { @('repo', 'tag', 'commit') } else { @('sha256') }
   foreach ($key in $need) {
     if (-not (Pin $ext $key)) { throw "${ext}: no $key pinned for PHP $Minor in php-ext-windows.env" }
   }
 }
+
+$built = @($wanted | Where-Object { -not (Repackaged $_) })
 
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 $Out = (Resolve-Path $Out).Path
@@ -88,37 +105,43 @@ function Fetch-Php([string]$what) {
   if ($got -ne $item.sha256.ToLower()) { throw "$($item.path): SHA-256 $got doesn't match $($item.sha256) from releases.json" }
   return $item
 }
-$develPack = Fetch-Php 'devel_pack'
 $phpZip = Fetch-Php 'zip'
-Expand-Archive (Join-Path $work $develPack.path) -DestinationPath "$work\devel"
 Expand-Archive (Join-Path $work $phpZip.path) -DestinationPath "$work\php"
-$phpize = (Get-ChildItem -Recurse -Filter phpize.bat "$work\devel" | Select-Object -First 1)
-if (-not $phpize) { throw "$($develPack.path) has no phpize.bat" }
-$phpize = $phpize.FullName
 $phpDir = "$work\php"
 if (-not (Test-Path "$phpDir\php.exe")) { throw "$($phpZip.path) has no php.exe" }
 
-# 2. The compiler matches the one this PHP was built with.
-if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw 'cl.exe is not on PATH; run from a Visual Studio developer prompt' }
-# cl prints its banner (with the version) to stderr and its usage to stdout.
-$clBanner = (& cl.exe 2>&1 | ForEach-Object { $_.ToString() } | Where-Object { $_ -match 'Compiler Version' } | Select-Object -First 1)
-if ($clBanner -notmatch 'Version (\d+)\.(\d+)\.(\d+)') { throw "Can't read the cl version from: $clBanner" }
-$cl = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
-$clMinor = [int]$Matches[2]
-$range = if ($compiler -eq 'vs16') { 20..29 } else { 30..49 }
-if ($Matches[1] -ne '19' -or $range -notcontains $clMinor) { throw "cl $cl doesn't build $compiler extensions" }
+# Only a build needs the devel pack, the compiler (2) and the PHP SDK (3); a
+# run that only repackages skips them.
+if ($built) {
+  $develPack = Fetch-Php 'devel_pack'
+  Expand-Archive (Join-Path $work $develPack.path) -DestinationPath "$work\devel"
+  $phpize = (Get-ChildItem -Recurse -Filter phpize.bat "$work\devel" | Select-Object -First 1)
+  if (-not $phpize) { throw "$($develPack.path) has no phpize.bat" }
+  $phpize = $phpize.FullName
 
-# 3. The PHP SDK: configure.bat needs its bison, re2c and sed, and checks its
-# version with phpsdk_version.
-$sdkTag = $pins['PHP_SDK_TAG']; $sdkCommit = $pins['PHP_SDK_COMMIT']
-git clone --quiet --depth 1 --branch $sdkTag https://github.com/php/php-sdk-binary-tools.git sdk
-if ((git -C sdk rev-parse HEAD) -ne $sdkCommit) { throw "php-sdk-binary-tools $sdkTag isn't commit $sdkCommit" }
-$sdk = "$work\sdk"
+  # 2. The compiler matches the one this PHP was built with.
+  if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw 'cl.exe is not on PATH; run from a Visual Studio developer prompt' }
+  # cl prints its banner (with the version) to stderr and its usage to stdout.
+  $clBanner = (& cl.exe 2>&1 | ForEach-Object { $_.ToString() } | Where-Object { $_ -match 'Compiler Version' } | Select-Object -First 1)
+  if ($clBanner -notmatch 'Version (\d+)\.(\d+)\.(\d+)') { throw "Can't read the cl version from: $clBanner" }
+  $cl = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+  $clMinor = [int]$Matches[2]
+  $range = if ($compiler -eq 'vs16') { 20..29 } else { 30..49 }
+  if ($Matches[1] -ne '19' -or $range -notcontains $clMinor) { throw "cl $cl doesn't build $compiler extensions" }
+
+  # 3. The PHP SDK: configure.bat needs its bison, re2c and sed, and checks its
+  # version with phpsdk_version.
+  $sdkTag = $pins['PHP_SDK_TAG']; $sdkCommit = $pins['PHP_SDK_COMMIT']
+  git clone --quiet --depth 1 --branch $sdkTag https://github.com/php/php-sdk-binary-tools.git sdk
+  if ((git -C sdk rev-parse HEAD) -ne $sdkCommit) { throw "php-sdk-binary-tools $sdkTag isn't commit $sdkCommit" }
+  $sdk = "$work\sdk"
+}
 
 # Each extension's source in src-<ext>: a git tag at its pinned commit, or a
-# PECL tarball at its pinned SHA-256 (PECL publishes no checksum). Then the
-# patches <EXT>_PATCHES names from scripts\php-ext-patches, if any, and the
-# notices <EXT>_NOTICES names into notices-<ext>, each at its pinned SHA-256.
+# PECL tarball at its pinned SHA-256 (PECL publishes no checksum); or, for one
+# that's repackaged, its DLL (see Fetch-Dll). Then the patches <EXT>_PATCHES
+# names from scripts\php-ext-patches, if any, and the notices <EXT>_NOTICES
+# names into notices-<ext>, each at its pinned SHA-256.
 function Pecl-Url([string]$ext) { "https://pecl.php.net/get/$ext-$(Pin $ext 'version').tgz" }
 # <EXT>_NOTICE_<NAME> for each name in <EXT>_NOTICES: <file> <URL> <SHA-256>.
 function Notices([string]$ext) {
@@ -128,8 +151,67 @@ function Notices([string]$ext) {
     [ordered]@{ file = $spec[0]; url = $spec[1]; sha256 = $spec[2].ToLower() }
   }
 }
+$gh = @{}; if ($env:GITHUB_TOKEN) { $gh['Authorization'] = "Bearer $env:GITHUB_TOKEN" }
+# A repackaged extension's DLL, from its project's GitHub release: the asset
+# (<EXT>_ASSET, with {version}, {minor} and {compiler} filled in) is checked
+# against GitHub's digest, or the pinned <EXT>_SHA256 for releases older than
+# GitHub's digests, and unpacked into pkg-<ext>. mongodb's zip holds one DLL,
+# named after the asset, and its LICENSE. Microsoft's holds a DLL per PHP
+# version, thread model and architecture, and must be signed by Microsoft.
+function Fetch-Dll([string]$ext) {
+  $repo = Pin $ext 'repo'; $version = Pin $ext 'version'
+  $kind = Pin $ext 'source'
+  $tag = if ($kind -eq 'dll') { $version } else { Pin $ext 'tag' }
+  $asset = (Pin $ext 'asset').Replace('{version}', $version).Replace('{minor}', $Minor).Replace('{compiler}', $compiler)
+  $release = Invoke-RestMethod -Headers $gh "https://api.github.com/repos/$repo/releases/tags/$tag"
+  $item = @($release.assets | Where-Object name -eq $asset)
+  if ($item.Count -ne 1) { throw "${ext}: $repo's release $tag has no $asset" }
+  $item = $item[0]
+  $digest = if ($item.PSObject.Properties['digest']) { $item.digest } else { $null }
+  $pinned = (Pin $ext 'sha256').ToLower()
+  if (-not $digest -and -not $pinned) { throw "${asset}: no published digest and no pinned SHA-256" }
+  if ($digest -and $digest -notmatch '^sha256:[0-9a-f]{64}$') { throw "${asset}: GitHub's digest $digest isn't a SHA-256" }
+  $zip = Join-Path $work "$ext-$asset"
+  Invoke-WebRequest -OutFile $zip $item.browser_download_url
+  $got = Sha256 $zip
+  if ($digest -and "sha256:$got" -ne $digest) { throw "${asset}: SHA-256 $got doesn't match $digest from GitHub" }
+  if ($pinned -and $got -ne $pinned) { throw "${asset}: SHA-256 $got, not the pinned $pinned" }
+  $pkg = "$work\pkg-$ext"
+  Expand-Archive $zip -DestinationPath $pkg
+
+  if ($kind -eq 'dll') {
+    $dlls = @(Get-ChildItem -Recurse -File -Filter "php_$ext*.dll" $pkg | Where-Object Extension -eq '.dll')
+    $licence = "$pkg\LICENSE"
+    if (-not (Test-Path $licence)) { throw "${ext}: $asset has no LICENSE" }
+  } else {
+    # The x64, non-thread-safe DLL for this minor: php_<ext>_<XY>_nts_x64.dll,
+    # or <arch>\php_<ext>_<XY>_nts.dll in the older layout with a folder per
+    # architecture. Microsoft's zips carry no licence; its notice brings it.
+    $dlls = @(Get-ChildItem -Recurse -File -Filter "php_${ext}_$($Minor.Replace('.', ''))_nts*.dll" $pkg |
+      Where-Object { $rel = $_.FullName.Substring($pkg.Length); $_.Extension -eq '.dll' -and $rel -match 'x64' -and $rel -notmatch 'x86' })
+    $licence = $null
+  }
+  if ($dlls.Count -ne 1) { throw "${ext}: $asset holds $($dlls.Count) DLLs for PHP $Minor x64 non-thread-safe, not one" }
+  $dll = $dlls[0]
+  $source = [ordered]@{
+    repo = "https://github.com/$repo"; tag = $tag; asset = $asset; url = $item.browser_download_url
+    sha256 = $got; checked_against = if ($digest) { 'GitHub digest' } else { 'pinned SHA-256' }
+    file = $dll.FullName.Substring($pkg.Length + 1)
+  }
+  if ($kind -eq 'microsoft') {
+    $sig = Get-AuthenticodeSignature -FilePath $dll.FullName
+    if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch '(^|, )O=Microsoft Corporation(,|$)') {
+      throw "$($dll.Name) isn't validly signed by Microsoft ($($sig.Status))"
+    }
+    $source.signer = [ordered]@{ subject = $sig.SignerCertificate.Subject; thumbprint = $sig.SignerCertificate.Thumbprint }
+  }
+  [ordered]@{ dll = $dll.FullName; licence = $licence; source = $source }
+}
+$repack = @{}
 foreach ($ext in $wanted) {
-  if ((Pin $ext 'source') -eq 'pecl') {
+  if (Repackaged $ext) {
+    $repack[$ext] = Fetch-Dll $ext
+  } elseif ((Pin $ext 'source') -eq 'pecl') {
     $version = Pin $ext 'version'; $want = (Pin $ext 'sha256').ToLower()
     $tgz = Join-Path $work "$ext-$version.tgz"
     Invoke-WebRequest -OutFile $tgz (Pecl-Url $ext)
@@ -162,13 +244,15 @@ foreach ($ext in $wanted) {
 # the way phpsdk_setvars.bat puts them there.
 $pathBefore = $env:PATH
 $clBefore = $env:CL
-$env:PHP_SDK_ROOT_PATH = $sdk
-$env:PHP_SDK_BIN_PATH = "$sdk\bin"
-$env:PHP_SDK_MSYS2_PATH = "$sdk\msys2\usr\bin"
-$env:PHP_SDK_PHP_CMD = "$sdk\bin\php\do_php.bat"
-$env:PATH = "$sdk\bin;$sdk\msys2\usr\bin;$pathBefore"
+if ($built) {
+  $env:PHP_SDK_ROOT_PATH = $sdk
+  $env:PHP_SDK_BIN_PATH = "$sdk\bin"
+  $env:PHP_SDK_MSYS2_PATH = "$sdk\msys2\usr\bin"
+  $env:PHP_SDK_PHP_CMD = "$sdk\bin\php\do_php.bat"
+  $env:PATH = "$sdk\bin;$sdk\msys2\usr\bin;$pathBefore"
+}
 try {
-  foreach ($ext in $wanted) {
+  foreach ($ext in $built) {
     $sub = Pin $ext 'subdir'
     $dir = if ($sub) { "$work\src-$ext\$sub" } else { "$work\src-$ext" }
     Push-Location $dir
@@ -213,7 +297,10 @@ foreach ($ext in $wanted) {
   $dir = if ($sub) { "$src\$sub" } else { $src }
   $stage = "$work\stage-$ext"
   New-Item -ItemType Directory -Force -Path "$stage\ext", "$stage\licenses\php_$ext" | Out-Null
-  Copy-Item "$dir\x64\Release\php_$ext.dll" "$stage\ext\"
+  # A repackaged DLL is renamed to php_<ext>.dll and otherwise unchanged, so a
+  # signature inside it stays valid.
+  $dll = if (Repackaged $ext) { $repack[$ext].dll } else { "$dir\x64\Release\php_$ext.dll" }
+  Copy-Item $dll "$stage\ext\php_$ext.dll"
 
   # 5. It loads into the official PHP, with nothing on PATH but that PHP and
   # Windows' own DLLs.
@@ -236,38 +323,41 @@ foreach ($ext in $wanted) {
   Write-Output "php_$ext.dll loads into PHP $full (php -m lists $ext)"
 
   # 6. The licence, the notices <EXT>_NOTICES names and BUILDINFO.json beside
-  # the DLL.
-  $licence = @('LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING') |
-    ForEach-Object { "$dir\$_"; "$src\$_" } | Where-Object { Test-Path $_ } | Select-Object -First 1
-  if (-not $licence) { throw "${ext}: no LICENSE or COPYING in its source" }
-  Copy-Item $licence "$stage\licenses\php_$ext\LICENSE"
+  # the DLL. A built extension's licence comes from its source, mongodb's from
+  # its zip, and Microsoft's from its notice (its zips carry none).
+  $licence = if (Repackaged $ext) { $repack[$ext].licence } else {
+    @('LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING') |
+      ForEach-Object { "$dir\$_"; "$src\$_" } | Where-Object { Test-Path $_ } | Select-Object -First 1
+  }
+  if ($licence) { Copy-Item $licence "$stage\licenses\php_$ext\LICENSE" }
   $notices = @(Notices $ext)
   if ($notices) { Copy-Item -Recurse "$work\notices-$ext\*" "$stage\licenses\php_$ext\" }
   foreach ($notice in $notices) {
     if (-not (Test-Path "$stage\licenses\php_$ext\$($notice.file)")) { throw "${ext}: the zip would lack $($notice.file)" }
   }
-  $source = if ((Pin $ext 'source') -eq 'pecl') {
+  if (-not (Test-Path "$stage\licenses\php_$ext\LICENSE")) { throw "${ext}: no LICENSE or COPYING in its source, and no notice named LICENSE" }
+  $info = [ordered]@{ extension = $ext; version = $version }
+  $info.source = if (Repackaged $ext) { $repack[$ext].source } elseif ((Pin $ext 'source') -eq 'pecl') {
     [ordered]@{ url = (Pecl-Url $ext); sha256 = (Pin $ext 'sha256').ToLower(); subdir = $sub }
   } else {
     [ordered]@{ repo = "https://github.com/$(Pin $ext 'repo')"; tag = (Pin $ext 'tag'); commit = (Pin $ext 'commit'); subdir = $sub }
   }
-  Write-BuildInfo "$stage\licenses\php_$ext\BUILDINFO.json" ([ordered]@{
-    extension = $ext
-    version = $version
-    source = $source
-    php = [ordered]@{ version = $full; build = "nts-$compiler-x64"; zip = $phpZip.path; zip_sha256 = $phpZip.sha256.ToLower() }
-    devel_pack = [ordered]@{ file = $develPack.path; sha256 = $develPack.sha256.ToLower() }
-    php_sdk = [ordered]@{ tag = $sdkTag; commit = $sdkCommit }
-    cl = $cl
-    configure = (Pin $ext 'configure')
-    cl_options = (Pin $ext 'cl')
-    patches = @((Pin $ext 'patches').Split(' ', [StringSplitOptions]::RemoveEmptyEntries) |
+  $info.php = [ordered]@{ version = $full; build = "nts-$compiler-x64"; zip = $phpZip.path; zip_sha256 = $phpZip.sha256.ToLower() }
+  if (-not (Repackaged $ext)) {
+    $info.devel_pack = [ordered]@{ file = $develPack.path; sha256 = $develPack.sha256.ToLower() }
+    $info.php_sdk = [ordered]@{ tag = $sdkTag; commit = $sdkCommit }
+    $info.cl = $cl
+    $info.configure = (Pin $ext 'configure')
+    $info.cl_options = (Pin $ext 'cl')
+    $info.patches = @((Pin $ext 'patches').Split(' ', [StringSplitOptions]::RemoveEmptyEntries) |
       ForEach-Object { [ordered]@{ file = $_; sha256 = (Sha256 (Join-Path $PSScriptRoot "php-ext-patches\$_")) } })
-    notices = $notices
-    php_m = @($modules | Where-Object { $_ })
-  })
+  }
+  $info.notices = $notices
+  $info.php_m = @($modules | Where-Object { $_ })
+  Write-BuildInfo "$stage\licenses\php_$ext\BUILDINFO.json" $info
 
   $file = "php-ext-$ext-$version-php$Minor-nts-$compiler-windows-x86_64.zip"
   Compress-Archive -Path "$stage\ext", "$stage\licenses" -DestinationPath "$Out\$file" -Force
-  Write-Output "Built $file"
+  $done = if (Repackaged $ext) { 'Repackaged' } else { 'Built' }
+  Write-Output "$done $file"
 }
