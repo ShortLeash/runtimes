@@ -14,7 +14,8 @@ platform's runners, so a test on a branch doesn't take every Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
 scripts/php-ext-windows.env. Typesense repackages each version pinned in
-scripts/typesense.env.
+scripts/typesense.env. sources lists the GPL projects whose sources the run
+collects (scripts/sources.sh), so their builds can release.
 """
 
 import json
@@ -110,6 +111,16 @@ def typesense_versions(what: str, mac: list, pins: dict) -> list:
     if what not in ("all", "typesense") or not mac:
         return []
     return pins.get("TYPESENSE_VERSIONS", "").strip('"').split()
+
+
+def sources(typesense: list) -> list:
+    """The projects whose sources a run collects: those of the GPL builds it
+    makes, which release only with them.
+
+    >>> sources(["30.2"]), sources([])
+    (['typesense'], [])
+    """
+    return ["typesense"] if typesense else []
 
 
 def pin(pins: dict, ext: str, key: str, minor: str) -> str:
@@ -244,7 +255,9 @@ def main() -> None:
     print(f"libwebrtc={json.dumps(libwebrtc_targets(what, platform))}")
     print(f"voice_engines={json.dumps(voice_engines_targets(what, platform))}")
     print(f"php_ext_windows={json.dumps(php_ext_windows_targets(what, platform, have, pins, windows_minors))}")
-    print(f"typesense={json.dumps(typesense_versions(what, mac, typesense_pins))}")
+    typesense = typesense_versions(what, mac, typesense_pins)
+    print(f"typesense={json.dumps(typesense)}")
+    print(f"sources={json.dumps(sources(typesense))}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 

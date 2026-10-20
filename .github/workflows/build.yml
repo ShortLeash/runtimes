@@ -5,6 +5,8 @@
 # builds (fetched and checked, not built here), and attaches them to this
 # repository's releases with a build attestation. DevKit's own publishing
 # verifies each file against that attestation before it signs and serves it.
+# Typesense releases also carry the GPL source they were built from (the
+# sources job).
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
@@ -72,6 +74,7 @@ jobs:
       voice_engines: ${{ steps.plan.outputs.voice_engines }}
       php_ext_windows: ${{ steps.plan.outputs.php_ext_windows }}
       typesense: ${{ steps.plan.outputs.typesense }}
+      sources: ${{ steps.plan.outputs.sources }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -336,14 +339,41 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  # The sources of the GPL builds, attached to their releases: one job per
+  # project, so each sources file comes from exactly one job. The release
+  # withholds a Typesense build whose sources aren't among its files
+  # (scripts/tag.py).
+  sources:
+    needs: plan
+    if: needs.plan.outputs.sources != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        what: ${{ fromJSON(needs.plan.outputs.sources) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Collect the ${{ matrix.what }} sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/sources.sh ${{ matrix.what }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sources-${{ matrix.what }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, typesense]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, typesense, sources]
     # Release what built; a build that failed or timed out keeps its last
-    # release. A run that was cancelled releases nothing.
+    # release, and so does a Typesense build whose sources didn't build. A
+    # run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.typesense.result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.typesense.result != 'skipped' || needs.sources.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -371,11 +401,16 @@ jobs:
         run: |
           set -euo pipefail
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          python3 scripts/tag.py outputs | while read -r tag file; do
+          # tag.py leaves out a Typesense build whose sources aren't among
+          # the outputs; the rest attach, then the step fails.
+          status=0
+          python3 scripts/tag.py outputs >"$RUNNER_TEMP/releases.txt" || status=$?
+          while read -r tag file; do
             if ! gh release view "$tag" >/dev/null 2>&1; then
               gh release create "$tag" --title "$tag" --latest=false \
                 --notes "Built by $run_url. Verify a file with: gh attestation verify <file> --repo $GITHUB_REPOSITORY. Licences: see LICENSES.md."
             fi
             # A rebuild of the same version replaces its files.
             gh release upload "$tag" "$file" --clobber
-          done
+          done <"$RUNNER_TEMP/releases.txt"
+          exit "$status"
