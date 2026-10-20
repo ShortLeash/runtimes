@@ -12,16 +12,17 @@ the other builds still release and the run fails. Sources files print first,
 so a failed upload can't leave a build on its release without them.
 
 A release holds one version of one thing for every platform: php-8.4.26 has
-the CLI and php-fpm for both Mac architectures, ruby-3.4.7 has macOS and
-Windows, pgvector-0.8.7 has every Postgres major on every platform, memcached-1.6.45
-has both Mac architectures, libwebrtc-0.3.49 has every Mac and Windows
-architecture, and voice-engines-0.4.0-0.1.160 (named after the
-transcribe-cpp-sys and llama-cpp-sys-2 crates) has both Mac architectures and
-Windows x64. php-ext-redis-6.3.0 has one Windows x64 DLL for each PHP minor,
-built with the compiler that minor's official PHP uses. mariadb-11.8.9 has
-both Mac architectures, and postgis-3.6.4 has every Postgres major on every
-platform (postgis-3.6.4-pg18-macos-aarch64.tar.gz). Both also carry the GPL
-sources they were built from, as <name>-<version>-sources.tar.gz.
+the CLI and php-fpm for both Mac architectures (so does a preview,
+php-8.6.0RC3), ruby-3.4.7 has macOS and Windows, pgvector-0.8.7 has every
+Postgres major on every platform, memcached-1.6.45 has both Mac
+architectures, libwebrtc-0.3.49 has every Mac and Windows architecture, and
+voice-engines-0.4.0-0.1.160 (named after the transcribe-cpp-sys and
+llama-cpp-sys-2 crates) has both Mac architectures and Windows x64.
+php-ext-redis-6.3.0 has one Windows x64 DLL for each PHP minor, built with
+the compiler that minor's official PHP uses. mariadb-11.8.9 has both Mac
+architectures, and postgis-3.6.4 has every Postgres major on every platform
+(postgis-3.6.4-pg18-macos-aarch64.tar.gz). Both also carry the GPL sources
+they were built from, as <name>-<version>-sources.tar.gz.
 """
 
 import pathlib
@@ -32,7 +33,7 @@ import tarfile
 from buildinfo import parse_env
 
 PATTERNS = [
-    re.compile(r"^(?P<tag>php-\d+\.\d+\.\d+)-(?:cli|fpm)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
+    re.compile(r"^(?P<tag>php-\d+\.\d+\.\d+(?:(?:alpha|beta|RC)\d+)?)-(?:cli|fpm)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
     re.compile(r"^(?P<tag>ruby-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
     re.compile(r"^(?P<tag>pgvector-\d+\.\d+\.\d+)-pg\d+-[a-z]+-[a-z0-9_]+\.(?:tar\.gz|zip)$"),
     re.compile(r"^(?P<tag>memcached-\d+\.\d+\.\d+)-[a-z]+-[a-z0-9_]+\.tar\.gz$"),
@@ -48,6 +49,10 @@ def tag(name: str) -> str:
     """
     >>> tag("php-8.4.26-fpm-macos-x86_64.tar.gz")
     'php-8.4.26'
+    >>> tag("php-8.6.0RC3-cli-macos-aarch64.tar.gz")
+    'php-8.6.0RC3'
+    >>> tag("php-8.6.0beta2-fpm-macos-x86_64.tar.gz"), tag("php-8.6.0alpha1-cli-macos-aarch64.tar.gz")
+    ('php-8.6.0beta2', 'php-8.6.0alpha1')
     >>> tag("ruby-3.4.7-windows-x86_64.zip")
     'ruby-3.4.7'
     >>> tag("pgvector-0.8.7-pg18-macos-aarch64.tar.gz")

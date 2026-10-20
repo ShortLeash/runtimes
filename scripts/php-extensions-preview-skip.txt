@@ -1,0 +1,23 @@
+# Extensions left out of PHP preview builds (pre-releases such as 8.6.0RC3),
+# because they don't build against the preview yet: one per line, each with a
+# "#" reason. php.sh drops them from php-extensions.txt's list (and from its
+# check that every listed extension loaded) for a pre-release version only.
+# Listing pcov ships the preview's CLI archive without pcov.so. Remove a line
+# once a release of the extension builds, and empty the file when the minor
+# is released. Checked against PHP 8.6.0RC3 with static-php-cli 2.8.5 and
+# PECL's releases on 2026-10-19; most use macros PHP 8.6 removed (XtOffsetOf,
+# zval_dtor, INI_STR, INI_INT and INI_BOOL).
+apcu        # 5.1.28: XtOffsetOf and php_verror's old signature
+ev          # 1.2.3: XtOffsetOf
+event       # 3.1.4: XtOffsetOf
+excimer     # 1.2.6: XtOffsetOf
+grpc        # 1.85.0RC1: XtOffsetOf
+igbinary    # 3.2.17RC1: zval_dtor
+imagick     # 3.8.1: XtOffsetOf
+memcached   # 3.4.0: zval_dtor and XtOffsetOf
+msgpack     # 3.0.1: zend_string arithmetic PHP 8.6 no longer allows
+pcov        # 1.0.12: INI_BOOL and INI_INT (the CLI archive ships without pcov.so)
+pdo_sqlsrv  # 5.13.3: php_stream_wrapper_log_error's old signature
+redis       # 6.3.0: zval_dtor and INI_STR
+sqlsrv      # 5.13.3: INI_INT and INI_BOOL
+swoole      # 6.2.2: static-php-cli passes it --with-pic, which PHP 8.6's configure refuses
