@@ -1,19 +1,21 @@
 # Builds static PHP with more extensions, PHP extensions for Windows PHP,
-# relocatable Ruby, pgvector for each Postgres version DevKit installs,
-# memcached for macOS, libwebrtc (without H.264) and the local AI engines
-# (transcribe.cpp and llama.cpp) for DevKit, and attaches them to this
-# repository's releases with a build attestation. DevKit's own publishing
-# verifies each file against that attestation before it signs and serves it.
+# relocatable Ruby, pgvector and PostGIS for each Postgres version DevKit
+# installs, memcached and MariaDB for macOS, libwebrtc (without H.264) and the
+# local AI engines (transcribe.cpp and llama.cpp) for DevKit, and attaches
+# them to this repository's releases with a build attestation. DevKit's own
+# publishing verifies each file against that attestation before it signs and
+# serves it. MariaDB and PostGIS releases also carry the GPL sources they were
+# built from (the sources job).
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
-# Ruby, pgvector or memcached release, or to rebuild everything. libwebrtc
-# builds only when asked for by name (what: libwebrtc); it takes an hour or two.
-# The voice engines build only when asked for by name too (what:
-# voice-engines), after their pins change. So do the PHP extensions for
-# Windows (what: php-ext-windows), which build only the files not released
-# yet. Only runs on main attach files to releases; a run on another branch
-# only builds.
+# Ruby, pgvector, memcached, MariaDB or PostGIS release, or to rebuild
+# everything. libwebrtc builds only when asked for by name (what: libwebrtc);
+# it takes an hour or two. The voice engines build only when asked for by
+# name too (what: voice-engines), after their pins change. So do the PHP
+# extensions for Windows (what: php-ext-windows), which build only the files
+# not released yet. Only runs on main attach files to releases; a run on
+# another branch only builds.
 
 name: Build
 
@@ -25,7 +27,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows]
+        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -70,6 +72,10 @@ jobs:
       libwebrtc: ${{ steps.plan.outputs.libwebrtc }}
       voice_engines: ${{ steps.plan.outputs.voice_engines }}
       php_ext_windows: ${{ steps.plan.outputs.php_ext_windows }}
+      mariadb: ${{ steps.plan.outputs.mariadb }}
+      postgis: ${{ steps.plan.outputs.postgis }}
+      postgis_windows: ${{ steps.plan.outputs.postgis_windows }}
+      sources: ${{ steps.plan.outputs.sources }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -82,8 +88,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          python3 -m doctest scripts/plan.py scripts/tag.py
+          python3 -m doctest scripts/plan.py scripts/tag.py scripts/check_workflow.py
+          # Every build job must be in the release's needs and if:, and every
+          # plan output a job reads declared. The check reads this file with
+          # PyYAML: the runner's, or, if the image drops it, a wheel checked
+          # against the hashes in scripts/ci-requirements.txt.
+          py=python3
+          if ! python3 -c 'import yaml' 2>/dev/null; then
+            python3 -m venv "$RUNNER_TEMP/yaml"
+            "$RUNNER_TEMP/yaml/bin/pip" install --quiet --require-hashes --only-binary=:all: \
+              -r scripts/ci-requirements.txt
+            py="$RUNNER_TEMP/yaml/bin/python"
+          fi
+          "$py" scripts/check_workflow.py --require-yaml
           gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].assets[].name' > published.txt
+          # shellcheck disable=SC2086 # one argument per PHP minor
           python3 scripts/plan.py "$WHAT" published.txt $PHP_MINORS | tee -a "$GITHUB_OUTPUT"
       - name: Keep the schedule on
         if: github.event_name == 'schedule'
@@ -310,14 +329,156 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  mariadb:
+    needs: plan
+    if: needs.plan.outputs.mariadb == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
+        # DevKit's two MariaDB series; the pins are in scripts/mariadb.env.
+        mariadb: ["11.8", "10.11"]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build MariaDB ${{ matrix.mariadb }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/mariadb.sh ${{ matrix.mariadb }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mariadb-${{ matrix.mariadb }}-${{ matrix.runner }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
+  postgis:
+    needs: plan
+    if: needs.plan.outputs.postgis == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
+        # Every PostgreSQL version DevKit installs; DevKit's publishing checks it
+        postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      # protoc-c writes PostGIS's vector tile and Geobuf code at build time;
+      # nothing links Homebrew's library (the script checks).
+      - name: Install protoc-c
+        run: brew install protobuf-c
+      - name: Build PostGIS for Postgres ${{ matrix.postgres }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/postgis.sh ${{ matrix.postgres }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: postgis-${{ matrix.postgres }}-${{ matrix.runner }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
+  # PostGIS for the MSVC Postgres DevKit installs on Windows, built with
+  # MSYS2's UCRT64 GCC (scripts/postgis-windows.sh), then checked in that
+  # Postgres (scripts/postgis-smoke.ps1).
+  postgis-windows:
+    needs: plan
+    if: needs.plan.outputs.postgis_windows == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every PostgreSQL version DevKit installs; DevKit's publishing checks it
+        postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      # The runner image's MSYS2 (C:\msys64), brought up to date in two
+      # rounds as MSYS2 asks (its core first), then the UCRT64 toolchain.
+      # pacman checks every package's signature against MSYS2's keyring.
+      # Only the toolchain comes from MSYS2: the libraries linked into
+      # PostGIS build from the checked sources in scripts/postgis.env.
+      - name: Update MSYS2's core
+        shell: pwsh
+        run: |
+          # pacman closes every MSYS2 program after updating the core, its
+          # own shell included, so the exit status says nothing here; the
+          # next step's update fails on any real error.
+          C:\msys64\usr\bin\bash.exe --login -c 'pacman -Syuu --noconfirm'
+          exit 0
+      - name: Install MSYS2's UCRT64 toolchain
+        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
+        env:
+          MSYSTEM: UCRT64
+        # MSYS2's mirrors turn away bursts of downloads (429), and five jobs
+        # start at once: each try waits longer before the next.
+        run: |
+          for try in 1 2 3 4 5; do
+            pacman -Syuu --noconfirm &&
+              pacman -S --noconfirm --needed make perl python bison flex bzip2 xz unzip zip diffutils \
+                mingw-w64-ucrt-x86_64-{gcc,tools-git,cmake,ninja,pkgconf,libiconv,protobuf-c} &&
+              exit 0
+            sleep $((try * 30))
+          done
+          exit 1
+      - name: Build PostGIS for Postgres ${{ matrix.postgres }}
+        shell: C:\msys64\usr\bin\bash.exe --login -eo pipefail {0}
+        env:
+          MSYSTEM: UCRT64
+          # Keeps the login shell in the checkout.
+          CHERE_INVOKING: 1
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/postgis-windows.sh ${{ matrix.postgres }} out "$(cygpath -u '${{ runner.temp }}')/postgis"
+      # dumpbin for the smoke test's import check.
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Check PostGIS in Postgres ${{ matrix.postgres }}
+        shell: pwsh
+        run: ./scripts/postgis-smoke.ps1 "${{ runner.temp }}\postgis\pgroot" "${{ runner.temp }}\postgis\stage"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: postgis-${{ matrix.postgres }}-windows
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
+  # The complete sources of the GPL builds, attached to their releases (GPLv2
+  # section 3(a)): one job per thing, so each sources file comes from exactly
+  # one job. The release withholds a MariaDB or PostGIS build whose sources
+  # aren't among its files (scripts/tag.py).
+  sources:
+    needs: plan
+    if: needs.plan.outputs.sources != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        what: ${{ fromJSON(needs.plan.outputs.sources) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Collect the ${{ matrix.what }} sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: scripts/sources.sh ${{ matrix.what }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sources-${{ matrix.what }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis, postgis-windows, sources]
     # Release what built; a build that failed or timed out keeps its last
-    # release. A run that was cancelled releases nothing.
+    # release, and so does a MariaDB or PostGIS build whose sources didn't
+    # build. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.mariadb.result != 'skipped' || needs.postgis.result != 'skipped' || needs['postgis-windows'].result != 'skipped' || needs.sources.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -345,11 +506,16 @@ jobs:
         run: |
           set -euo pipefail
           run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          python3 scripts/tag.py outputs | while read -r tag file; do
+          # tag.py leaves out a MariaDB or PostGIS build whose sources aren't
+          # among the outputs; the rest attach, then the step fails.
+          status=0
+          python3 scripts/tag.py outputs >"$RUNNER_TEMP/releases.txt" || status=$?
+          while read -r tag file; do
             if ! gh release view "$tag" >/dev/null 2>&1; then
               gh release create "$tag" --title "$tag" --latest=false \
                 --notes "Built by $run_url. Verify a file with: gh attestation verify <file> --repo $GITHUB_REPOSITORY. Licences: see LICENSES.md."
             fi
             # A rebuild of the same version replaces its files.
             gh release upload "$tag" "$file" --clobber
-          done
+          done <"$RUNNER_TEMP/releases.txt"
+          exit "$status"
