@@ -245,6 +245,7 @@ if [ -n "$missing" ]; then
   echo "$missing" >&2
   exit 1
 fi
+command -v diff >/dev/null || { echo "diff isn't installed; install MSYS2's diffutils" >&2; exit 1; }
 if ! diff <(tr -d '\r' <"$pgroot/include/server/pg_config_manual.h") \
   <(tr -d '\r' <"postgresql-$pgsrc_version/src/include/pg_config_manual.h") >&2; then
   echo "The MSVC Postgres's pg_config_manual.h isn't Postgres $pgsrc_version's" >&2
