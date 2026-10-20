@@ -1,13 +1,14 @@
 # Builds static PHP with more extensions, PHP extensions for Windows PHP,
 # relocatable Ruby, pgvector for each Postgres version DevKit installs,
 # memcached for macOS, libwebrtc (without H.264) and the local AI engines
-# (transcribe.cpp and llama.cpp) for DevKit, and attaches them to this
+# (transcribe.cpp and llama.cpp) for DevKit, repackages Typesense's own macOS
+# builds (fetched and checked, not built here), and attaches them to this
 # repository's releases with a build attestation. DevKit's own publishing
 # verifies each file against that attestation before it signs and serves it.
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet. Run it by hand (Actions › Build › Run workflow) for a new
-# Ruby, pgvector or memcached release, or to rebuild everything. libwebrtc
+# Ruby, pgvector, memcached or Typesense release, or to rebuild everything. libwebrtc
 # builds only when asked for by name (what: libwebrtc); it takes an hour or two.
 # The voice engines build only when asked for by name too (what:
 # voice-engines), after their pins change. So do the PHP extensions for
@@ -25,7 +26,7 @@ on:
       what:
         description: What to build
         type: choice
-        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows]
+        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, typesense]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
@@ -70,6 +71,7 @@ jobs:
       libwebrtc: ${{ steps.plan.outputs.libwebrtc }}
       voice_engines: ${{ steps.plan.outputs.voice_engines }}
       php_ext_windows: ${{ steps.plan.outputs.php_ext_windows }}
+      typesense: ${{ steps.plan.outputs.typesense }}
       mac_runners: ${{ steps.plan.outputs.mac_runners }}
       runners: ${{ steps.plan.outputs.runners }}
     steps:
@@ -310,14 +312,38 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
+  # Typesense's own macOS build of each version in scripts/typesense.env,
+  # checked against the SHA-256 in its Homebrew tap and smoke-tested on each
+  # architecture's runner. Nothing is compiled.
+  typesense:
+    needs: plan
+    if: needs.plan.outputs.typesense != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
+        typesense: ${{ fromJSON(needs.plan.outputs.typesense) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Repackage Typesense ${{ matrix.typesense }}
+        run: scripts/typesense.sh ${{ matrix.typesense }} out
+      - uses: actions/upload-artifact@v7
+        with:
+          name: typesense-${{ matrix.typesense }}-${{ matrix.runner }}
+          path: out/*
+          # Only handed to the release job; the releases keep the files.
+          retention-days: 1
+
   release:
-    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows]
+    needs: [plan, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, typesense]
     # Release what built; a build that failed or timed out keeps its last
     # release. A run that was cancelled releases nothing.
     if: >-
       ${{ !cancelled()
         && github.ref == 'refs/heads/main'
-        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped') }}
+        && (needs.php.result != 'skipped' || needs.ruby.result != 'skipped' || needs.pgvector.result != 'skipped' || needs.memcached.result != 'skipped' || needs.libwebrtc.result != 'skipped' || needs['voice-engines'].result != 'skipped' || needs['php-ext-windows'].result != 'skipped' || needs.typesense.result != 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

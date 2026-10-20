@@ -4,7 +4,7 @@
 Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published asset names file> <PHP minor>...
 
 <what> is the workflow input (all, php, ruby, pgvector, memcached, libwebrtc,
-voice-engines or php-ext-windows), or "scheduled"
+voice-engines, php-ext-windows or typesense), or "scheduled"
 for the daily run. The daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
@@ -13,7 +13,8 @@ release rather than asking php.net itself and maybe getting another answer. PLAT
 platform's runners, so a test on a branch doesn't take every Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
-scripts/php-ext-windows.env.
+scripts/php-ext-windows.env. Typesense repackages each version pinned in
+scripts/typesense.env.
 """
 
 import json
@@ -94,6 +95,21 @@ def voice_engines_targets(what: str, platform: str) -> list:
     if platform in ("all", "windows"):
         out += [{"runner": "windows-2022", "os": "windows", "arch": "x86_64"}]
     return out
+
+
+def typesense_versions(what: str, mac: list, pins: dict) -> list:
+    """The Typesense versions a run repackages: each one scripts/typesense.env
+    pins, for macOS only (Typesense makes no Windows build).
+
+    >>> pins = {"TYPESENSE_VERSIONS": '"30.2 29.0"'}
+    >>> typesense_versions("typesense", MAC_RUNNERS, pins), typesense_versions("all", MAC_RUNNERS, pins)
+    (['30.2', '29.0'], ['30.2', '29.0'])
+    >>> typesense_versions("typesense", [], pins), typesense_versions("php", MAC_RUNNERS, pins)
+    ([], [])
+    """
+    if what not in ("all", "typesense") or not mac:
+        return []
+    return pins.get("TYPESENSE_VERSIONS", "").strip('"').split()
 
 
 def pin(pins: dict, ext: str, key: str, minor: str) -> str:
@@ -217,7 +233,9 @@ def main() -> None:
     mac, every = runners(platform)
     if not mac:
         php = []
-    pins = parse_env((pathlib.Path(__file__).resolve().parent / "php-ext-windows.env").read_text(encoding="utf-8"))
+    here = pathlib.Path(__file__).resolve().parent
+    pins = parse_env((here / "php-ext-windows.env").read_text(encoding="utf-8"))
+    typesense_pins = parse_env((here / "typesense.env").read_text(encoding="utf-8"))
     windows_minors = os.environ.get("PHP_WINDOWS_MINORS", "8.0 8.1 8.2 8.3 8.4 8.5").split()
     print(f"php={json.dumps(php)}")
     print(f"ruby={str(what in ('all', 'ruby')).lower()}")
@@ -226,6 +244,7 @@ def main() -> None:
     print(f"libwebrtc={json.dumps(libwebrtc_targets(what, platform))}")
     print(f"voice_engines={json.dumps(voice_engines_targets(what, platform))}")
     print(f"php_ext_windows={json.dumps(php_ext_windows_targets(what, platform, have, pins, windows_minors))}")
+    print(f"typesense={json.dumps(typesense_versions(what, mac, typesense_pins))}")
     print(f"mac_runners={json.dumps(mac)}")
     print(f"runners={json.dumps(every)}")
 
