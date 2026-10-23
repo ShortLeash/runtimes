@@ -12,7 +12,7 @@ out="$(mkdir -p "$1" && cd "$1" && pwd)"
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib.sh"
 . "$here/memcached.env"
-arch="$(devkit_arch)"
+arch="$(shortleash_arch)"
 
 work="$(mktemp -d)"
 cd "$work"
@@ -77,10 +77,10 @@ for _ in range(50):
         time.sleep(0.1)
 else:
     sys.exit("memcached didn't start")
-s.sendall(b"set devkit 0 0 2\r\nok\r\nget devkit\r\nversion\r\n")
+s.sendall(b"set shortleash 0 0 2\r\nok\r\nget shortleash\r\nversion\r\n")
 time.sleep(0.3)
 reply = s.recv(4096).decode()
-assert "STORED" in reply and "VALUE devkit 0 2\r\nok\r\nEND" in reply and "VERSION" in reply, reply
+assert "STORED" in reply and "VALUE shortleash 0 2\r\nok\r\nEND" in reply and "VERSION" in reply, reply
 PY
 
 check_macos_minimum "$stage"

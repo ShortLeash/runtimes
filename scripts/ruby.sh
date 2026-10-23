@@ -14,7 +14,7 @@ minor="$1"
 out="$(mkdir -p "$2" && cd "$2" && pwd)"
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib.sh"
-arch="$(devkit_arch)"
+arch="$(shortleash_arch)"
 openssl_tag="${OPENSSL_TAG:-openssl-3.5.9}"
 libyaml_version=0.2.5
 # yaml/libyaml publishes no digest; this is the SHA-256 of its 0.2.5 release

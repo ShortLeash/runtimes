@@ -19,7 +19,7 @@ out="$(mkdir -p "$2" && cd "$2" && pwd)"
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib.sh"
 . "$here/postgis.env"
-arch="$(devkit_arch)"
+arch="$(shortleash_arch)"
 major="${pg%%.*}"
 triple="$arch-apple-darwin"
 

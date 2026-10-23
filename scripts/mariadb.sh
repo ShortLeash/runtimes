@@ -18,7 +18,7 @@ out="$(mkdir -p "$2" && cd "$2" && pwd)"
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib.sh"
 . "$here/mariadb.env"
-arch="$(devkit_arch)"
+arch="$(shortleash_arch)"
 
 pin="MARIADB_${minor//./_}"
 version="${!pin:-}"
@@ -275,8 +275,8 @@ count="$(sql -e 'SELECT COUNT(*) FROM shop2.items')"
 # A user with a password logs in (the client hashes it with GnuTLS's Nettle),
 # over TLS when the server offers it (11.4 and later make their own
 # certificate).
-sql -e "CREATE USER app@'%' IDENTIFIED BY 'devkit-smoke'; GRANT SELECT ON shop2.* TO app@'%';"
-app=(--no-defaults --protocol=TCP -h 127.0.0.1 -P "$port" -u app --password=devkit-smoke -N -B)
+sql -e "CREATE USER app@'%' IDENTIFIED BY 'shortleash-smoke'; GRANT SELECT ON shop2.* TO app@'%';"
+app=(--no-defaults --protocol=TCP -h 127.0.0.1 -P "$port" -u app --password=shortleash-smoke -N -B)
 count="$("$moved/bin/mariadb" "${app[@]}" -e 'SELECT COUNT(*) FROM shop2.items')"
 [ "$count" = 2 ] || { echo "A user with a password couldn't read the restored table" >&2; exit 1; }
 if [ "$(sql -e 'SELECT @@have_ssl')" = YES ]; then

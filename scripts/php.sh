@@ -24,7 +24,7 @@ want="$1"
 out="$(mkdir -p "$2" && cd "$2" && pwd)"
 here="$(cd "$(dirname "$0")" && pwd)"
 . "$here/lib.sh"
-arch="$(devkit_arch)"
+arch="$(shortleash_arch)"
 spc_version="${SPC_VERSION:-2.8.5}"
 
 work="$(mktemp -d)"

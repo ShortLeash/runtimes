@@ -638,7 +638,7 @@ TESTED = {"transcribe": "full", "vad": "full", "chat": "full", "load": "load"}
 
 def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     """One model's entry in the released catalogue, in the shape Short Leash's
-    manifest lists models (devkit-core's ai::catalogue::Model). Short Leash's
+    manifest lists models (leash-core's ai::catalogue::Model). Short Leash's
     publishing rewrites the URLs to its own server when it mirrors the files.
     What Short Leash doesn't read goes under details.
 

@@ -40,7 +40,7 @@ fetch_checked() {
 }
 
 # The Mac's architecture as Short Leash names it: aarch64 or x86_64.
-devkit_arch() {
+shortleash_arch() {
   local a
   a="$(uname -m)"
   [ "$a" = arm64 ] && a=aarch64

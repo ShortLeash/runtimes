@@ -123,7 +123,7 @@ mkdir -p "$fixtures"
 fetch_hf "$TRANSCRIBE_SMOKE_REPO" "$TRANSCRIBE_SMOKE_COMMIT" "$TRANSCRIBE_SMOKE_FILE" "$TRANSCRIBE_SMOKE_SHA256" "$fixtures/$TRANSCRIBE_SMOKE_FILE"
 fetch_hf "$LLAMA_SMOKE_REPO" "$LLAMA_SMOKE_COMMIT" "$LLAMA_SMOKE_FILE" "$LLAMA_SMOKE_SHA256" "$fixtures/$LLAMA_SMOKE_FILE"
 run_prefix=()
-[ "$arch" != "$(devkit_arch)" ] && run_prefix=(arch "-$osx_arch")
+[ "$arch" != "$(shortleash_arch)" ] && run_prefix=(arch "-$osx_arch")
 python3 "$here/engine_smoke.py" \
   --pkg "$pkg" \
   --dr-wav "$work/transcribe.cpp/examples/common" \
