@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds a relocatable Ruby for one minor version, for the Mac this runs on:
 # the newest patch release from ruby-lang.org, with OpenSSL and libyaml built
-# in statically, so the folder works wherever DevKit unpacks it.
+# in statically, so the folder works wherever Short Leash unpacks it.
 #
 #   scripts/ruby.sh 3.4 out/
 #

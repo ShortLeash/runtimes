@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds DevKit's two local AI engines for macOS, each with its own ggml:
+# Builds Short Leash's two local AI engines for macOS, each with its own ggml:
 # transcribe.cpp (speech) and llama.cpp with its common library (chat and
-# summaries), at the pins in voice-engines.env. Static libraries, so DevKit's
+# summaries), at the pins in voice-engines.env. Static libraries, so Short Leash's
 # helpers link them in. Apple silicon builds use Metal; Intel builds run on
 # the CPU. Cross-builds x86_64 from an Apple silicon Mac (the smoke tests then
 # run under Rosetta).
@@ -77,7 +77,7 @@ cmake --build "$work/build-$arch-transcribe" --config Release -j "$(sysctl -n hw
 cmake --install "$work/build-$arch-transcribe" --prefix "$pkg/transcribe" >/dev/null
 
 # llama.cpp as llama-cpp-sys-2 builds it with its common feature, without
-# the network code DevKit doesn't use: no curl, no OpenSSL, no subprocesses.
+# the network code Short Leash doesn't use: no curl, no OpenSSL, no subprocesses.
 llama_opts=(
   -DBUILD_SHARED_LIBS=OFF
   -DLLAMA_BUILD_COMMON=ON

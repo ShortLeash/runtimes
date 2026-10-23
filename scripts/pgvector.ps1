@@ -1,4 +1,4 @@
-# Builds pgvector against one of the Postgres versions DevKit installs on
+# Builds pgvector against one of the Postgres versions Short Leash installs on
 # Windows (the theseus-rs builds) and checks it loads. Run from a Visual Studio
 # developer shell (nmake and cl on the PATH).
 #

@@ -1,8 +1,8 @@
 # Builds static PHP with more extensions, PHP extensions for Windows PHP,
-# relocatable Ruby, pgvector and PostGIS for each Postgres version DevKit
+# relocatable Ruby, pgvector and PostGIS for each Postgres version Short Leash
 # installs, memcached and MariaDB for macOS, libwebrtc (without H.264) and the
-# local AI engines (transcribe.cpp and llama.cpp) for DevKit, and attaches
-# them to this repository's releases with a build attestation. DevKit's own
+# local AI engines (transcribe.cpp and llama.cpp) for Short Leash, and attaches
+# them to this repository's releases with a build attestation. Short Leash's own
 # publishing verifies each file against that attestation before it signs and
 # serves it. MariaDB and PostGIS releases also carry the GPL sources they were
 # built from (the sources job).
@@ -46,7 +46,7 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: false
 
-# DevKit supports macOS 13, so every build targets it, whatever macOS the
+# Short Leash supports macOS 13, so every build targets it, whatever macOS the
 # runner runs. The scripts check each binary they ship against it.
 env:
   MACOSX_DEPLOYMENT_TARGET: "13.0"
@@ -181,7 +181,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: ${{ fromJSON(needs.plan.outputs.runners) }}
-        # Every PostgreSQL version DevKit installs. DevKit's publishing checks
+        # Every PostgreSQL version Short Leash installs. Short Leash's publishing checks
         # that the newest pgvector release has all of them.
         postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
     runs-on: ${{ matrix.runner }}
@@ -348,7 +348,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
-        # DevKit's two MariaDB series; the pins are in scripts/mariadb.env.
+        # Short Leash's two MariaDB series; the pins are in scripts/mariadb.env.
         mariadb: ["11.8", "10.11"]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
@@ -372,7 +372,7 @@ jobs:
       fail-fast: false
       matrix:
         runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
-        # Every PostgreSQL version DevKit installs; DevKit's publishing checks it
+        # Every PostgreSQL version Short Leash installs; Short Leash's publishing checks it
         postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
@@ -393,7 +393,7 @@ jobs:
           # Only handed to the release job; the releases keep the files.
           retention-days: 1
 
-  # PostGIS for the MSVC Postgres DevKit installs on Windows, built with
+  # PostGIS for the MSVC Postgres Short Leash installs on Windows, built with
   # MSYS2's UCRT64 GCC (scripts/postgis-windows.sh), then checked in that
   # Postgres (scripts/postgis-smoke.ps1).
   postgis-windows:
@@ -402,7 +402,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Every PostgreSQL version DevKit installs; DevKit's publishing checks it
+        # Every PostgreSQL version Short Leash installs; Short Leash's publishing checks it
         postgres: ["18.6.0", "17.11.0", "16.15.0", "15.19.0", "14.24.0"]
     runs-on: windows-latest
     timeout-minutes: 90

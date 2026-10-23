@@ -1,4 +1,4 @@
-# Builds DevKit's two local AI engines for Windows x64, each with its own
+# Builds Short Leash's two local AI engines for Windows x64, each with its own
 # ggml: transcribe.cpp (speech) and llama.cpp with its common library, at the
 # pins in voice-engines.env. DLLs with the dynamic C runtime (/MD), and ggml's
 # backends as loadable modules: CPU variants for each instruction set, picked
@@ -10,7 +10,7 @@
 # Writes out\voice-engines-<transcribe-cpp-sys>-<llama-cpp-sys-2>-windows-x86_64.zip
 # with transcribe\ and llama\ (install prefixes with lib\transcribe-link.json
 # and lib\llama-link.json; DLLs in bin\), LICENSES\ and BUILDINFO.json, which
-# records the MSVC version: DevKit installs at least that Visual C++
+# records the MSVC version: Short Leash installs at least that Visual C++
 # Redistributable. Fails unless every DLL uses the dynamic C runtime, both
 # engines link from their manifests alone and pass the CPU smoke tests.
 param([Parameter(Mandatory)][string]$Arch, [Parameter(Mandatory)][string]$Out)
@@ -74,7 +74,7 @@ function Fetch-Crate([string]$name, [string]$version, [string]$sha) {
   return $dir
 }
 
-# The engines, each checked against the crate DevKit links it through (as
+# The engines, each checked against the crate Short Leash links it through (as
 # scripts/engines.sh does on macOS).
 $transcribe = Join-Path $work 'transcribe.cpp'
 Fetch-Commit 'https://github.com/handy-computer/transcribe.cpp.git' $pins['TRANSCRIBE_COMMIT'] $transcribe
@@ -120,7 +120,7 @@ $env:VULKAN_SDK = $vkRoot
 $env:PATH = "$vkRoot\Bin;$env:PATH"
 $glslc = (& glslc --version | Select-Object -First 1)
 
-# The compiler DevKit's Redistributable pin follows.
+# The compiler Short Leash's Redistributable pin follows.
 if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) { throw 'cl.exe is not on PATH; run from a Visual Studio developer prompt' }
 # cl prints its banner (with the version) to stderr and its usage to stdout.
 $clBanner = (& cl.exe 2>&1 | ForEach-Object { $_.ToString() } | Where-Object { $_ -match 'Compiler Version' } | Select-Object -First 1)
@@ -158,7 +158,7 @@ Run cmake @('--build', "$work\b-t", '--config', 'Release', '--parallel')
 Run cmake @('--install', "$work\b-t", '--config', 'Release', '--prefix', "$pkg\transcribe")
 
 # llama.cpp as llama-cpp-sys-2 builds it with its common feature, without
-# the network code DevKit doesn't use.
+# the network code Short Leash doesn't use.
 $llamaOpts = @(
   '-DBUILD_SHARED_LIBS=ON',
   '-DGGML_BACKEND_DL=ON',

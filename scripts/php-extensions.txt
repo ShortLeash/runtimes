@@ -1,4 +1,4 @@
-# Extensions in DevKit's PHP builds: static-php-cli's bulk set, plus the ones
+# Extensions in Short Leash's PHP builds: static-php-cli's bulk set, plus the ones
 # hosted Laravel and Symfony apps commonly need. Comma-separated over
 # several lines; # comments. php.sh leaves imap out from PHP 8.4.
 # mbregex is mbstring's regex half (mb_split, mb_ereg), which Laravel's
@@ -8,7 +8,7 @@ gd,gmp,iconv,imagick,imap,intl,mbregex,mbstring,mysqli,mysqlnd,opcache,openssl
 opentelemetry,pcntl,pdo,pdo_mysql,pdo_pgsql,pdo_sqlite,pgsql,phar,posix
 readline,redis,session,shmop,simplexml,soap,sockets,sodium,sqlite3
 swoole,sysvmsg,sysvsem,sysvshm,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib
-# Added by DevKit's builds (not protobuf: static-php-cli refuses it next to
+# Added by Short Leash's builds (not protobuf: static-php-cli refuses it next to
 # grpc, and apps can use the google/protobuf library instead):
 igbinary,msgpack,mongodb,ldap,gettext,excimer,grpc,ev,sqlsrv,pdo_sqlsrv
 # Laravel's memcached cache and session driver:

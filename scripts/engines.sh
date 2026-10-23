@@ -4,7 +4,7 @@
 #   fetch_transcribe DIR   transcribe.cpp at TRANSCRIBE_COMMIT
 #   fetch_llama DIR        llama.cpp at LLAMA_COMMIT
 #
-# Each checks the source against the crate DevKit links it through, so an
+# Each checks the source against the crate Short Leash links it through, so an
 # engine pin can't drift from the crate pin.
 . "$(dirname "${BASH_SOURCE[0]}")/voice-engines.env"
 

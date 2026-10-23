@@ -1,6 +1,6 @@
 # Shared helpers for the build scripts. Source it: . "$here/lib.sh"
 
-# DevKit runs on macOS 13 or later, so everything it downloads must too,
+# Short Leash runs on macOS 13 or later, so everything it downloads must too,
 # whichever macOS the build machine runs (a macOS 15 runner would otherwise
 # produce binaries that need macOS 15).
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-13.0}"
@@ -39,7 +39,7 @@ fetch_checked() {
   fi
 }
 
-# The Mac's architecture as DevKit names it: aarch64 or x86_64.
+# The Mac's architecture as Short Leash names it: aarch64 or x86_64.
 devkit_arch() {
   local a
   a="$(uname -m)"

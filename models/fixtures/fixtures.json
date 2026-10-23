@@ -41,7 +41,7 @@
           "type": "function",
           "function": {
             "name": "get_logs",
-            "description": "Recent log lines of a site DevKit serves.",
+            "description": "Recent log lines of a site Short Leash serves.",
             "parameters": {
               "type": "object",
               "properties": {
@@ -60,7 +60,7 @@
           "type": "function",
           "function": {
             "name": "list_sites",
-            "description": "Every site DevKit serves, with its state.",
+            "description": "Every site Short Leash serves, with its state.",
             "parameters": {
               "type": "object",
               "properties": {}

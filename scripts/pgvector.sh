@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds pgvector against one of the Postgres versions DevKit installs (the
+# Builds pgvector against one of the Postgres versions Short Leash installs (the
 # theseus-rs builds), for the Mac this runs on, and checks it loads.
 #
 #   scripts/pgvector.sh 18.6.0 out/

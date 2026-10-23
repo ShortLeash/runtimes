@@ -140,7 +140,7 @@ MariaDB Server and its client programs for macOS. The server uses its bundled wo
 
 ## PostGIS
 
-PostGIS for macOS and Windows x64, built without raster support (no GDAL), for each Postgres version DevKit installs. On macOS, libxml2, SQLite and libc++ are macOS's own, linked from the system. On Windows, built with MSYS2's GCC, libxml2 and SQLite are built from source and linked in too, with GCC's C++ runtime, winpthreads and the mingw-w64 runtime, so the modules import nothing but `postgres.exe` and Windows' own DLLs. Each archive carries PostGIS's `COPYING` and `LICENSE.TXT` and the licences of everything linked into it in `doc/`; Windows archives also list the MSYS2 packages of the runtime in `doc/toolchain.txt`.
+PostGIS for macOS and Windows x64, built without raster support (no GDAL), for each Postgres version Short Leash installs. On macOS, libxml2, SQLite and libc++ are macOS's own, linked from the system. On Windows, built with MSYS2's GCC, libxml2 and SQLite are built from source and linked in too, with GCC's C++ runtime, winpthreads and the mingw-w64 runtime, so the modules import nothing but `postgres.exe` and Windows' own DLLs. Each archive carries PostGIS's `COPYING` and `LICENSE.TXT` and the licences of everything linked into it in `doc/`; Windows archives also list the MSYS2 packages of the runtime in `doc/toolchain.txt`.
 
 | Component | Licence |
 |---|---|
@@ -188,7 +188,7 @@ Two engines, each with its own copy of ggml. Each archive includes the engines' 
 | miniz, Silero VAD's runtime code (in transcribe.cpp) | MIT |
 | dr_wav (only in the smoke test, not in the archives) | Public domain or MIT-0 |
 
-The Windows build uses the Vulkan SDK (LunarG) to compile shaders and link against `vulkan-1.dll`; the SDK isn't in the archives, and DevKit loads the Vulkan loader the system provides.
+The Windows build uses the Vulkan SDK (LunarG) to compile shaders and link against `vulkan-1.dll`; the SDK isn't in the archives, and Short Leash loads the Vulkan loader the system provides.
 
 ## Models
 
@@ -196,14 +196,14 @@ The models keep their creators' licences. Each model in a `models-<date>` releas
 
 | Model | Creator | Licence | In the release |
 |---|---|---|---|
-| Parakeet Ultra | Moondream, post-trained from NVIDIA's Parakeet TDT 0.6B v3 | CC-BY-4.0 | converted and quantized by DevKit |
-| Parakeet TDT 0.6B v3 | NVIDIA | CC-BY-4.0 | converted and quantized by DevKit |
-| Nemotron 3.5 ASR 0.6B | NVIDIA | OpenMDW-1.1 | converted and quantized by DevKit |
-| Qwen3-ASR 0.6B | Qwen team, Alibaba Cloud | Apache-2.0 | converted and quantized by DevKit |
-| Granite Speech 4.1 2B | IBM | Apache-2.0 | converted and quantized by DevKit |
-| Whisper large-v3-turbo | OpenAI | MIT | converted and quantized by DevKit |
-| Whisper small | OpenAI | Apache-2.0 | converted and quantized by DevKit |
-| Silero VAD v6.2 | Silero Team | MIT | converted by DevKit |
+| Parakeet Ultra | Moondream, post-trained from NVIDIA's Parakeet TDT 0.6B v3 | CC-BY-4.0 | converted and quantized by Short Leash |
+| Parakeet TDT 0.6B v3 | NVIDIA | CC-BY-4.0 | converted and quantized by Short Leash |
+| Nemotron 3.5 ASR 0.6B | NVIDIA | OpenMDW-1.1 | converted and quantized by Short Leash |
+| Qwen3-ASR 0.6B | Qwen team, Alibaba Cloud | Apache-2.0 | converted and quantized by Short Leash |
+| Granite Speech 4.1 2B | IBM | Apache-2.0 | converted and quantized by Short Leash |
+| Whisper large-v3-turbo | OpenAI | MIT | converted and quantized by Short Leash |
+| Whisper small | OpenAI | Apache-2.0 | converted and quantized by Short Leash |
+| Silero VAD v6.2 | Silero Team | MIT | converted by Short Leash |
 | Qwen3.5 4B and 9B, Qwen3.6 35B-A3B | Qwen team, Alibaba Cloud; quantized to GGUF by Unsloth | Apache-2.0 | pinned on Hugging Face, unmodified |
 
 CC-BY-4.0 asks that changes be indicated: quantizing changes a model's weights, so the speech models' notices say they're modified. OpenMDW-1.1 ends the rights of anyone who sues claiming the model infringes a patent or copyright, unless they were sued first.

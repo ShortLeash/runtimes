@@ -1,4 +1,4 @@
-# Repackages RubyInstaller's Ruby for one minor version as a zip DevKit can
+# Repackages RubyInstaller's Ruby for one minor version as a zip Short Leash can
 # unpack (RubyInstaller publishes .7z archives and installers only). The .7z
 # is checked against the digest GitHub publishes for it.
 #

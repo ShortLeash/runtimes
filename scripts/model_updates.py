@@ -122,7 +122,7 @@ def chat_update(model: dict) -> dict:
         old = models.hf_paths_info(model["base"]["repo"], model["base"]["commit"], ["chat_template.jinja"]) or [{}]
         if tpl.get("oid") != old[0].get("oid"):
             notes.append(f"{model['base']['repo']}'s chat template changed at {new_short(base['sha'])}: "
-                         "DevKit's template stays until someone reviews the new one.")
+                         "Short Leash's template stays until someone reviews the new one.")
     if new == src["commit"] and licence == model["license"]:
         return {"id": model["id"], "notes": notes} if notes else None
     [p] = models.hf_paths_info(src["repo"], new, [f["path"]]) or [None]
@@ -259,8 +259,8 @@ def pr(report_path: str, results_dir: str) -> None:
         lines += ["### Notes", ""] + [f"- {code(n, 300)}" for n in report["notes"]] + [""]
     if report["advisories"]:
         lines += ["### llama.cpp security advisories", "",
-                  "New since the last check. DevKit's engines use llama.cpp at "
-                  f"`{models.engine_pins()['llama_commit']}`; bump `scripts/voice-engines.env` (and DevKit's "
+                  "New since the last check. Short Leash's engines use llama.cpp at "
+                  f"`{models.engine_pins()['llama_commit']}`; bump `scripts/voice-engines.env` (and Short Leash's "
                   "llama-cpp-sys-2) when it lacks a fix.", ""]
         for a in report["advisories"]:
             has = {True: "has the fix", False: "**lacks the fix**", None: "unknown (no fixed build or commit listed)"}[a["pinned_has_fix"]]

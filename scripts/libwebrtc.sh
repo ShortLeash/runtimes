@@ -25,7 +25,7 @@ work="${LIBWEBRTC_WORK:-$(mktemp -d)}"
 mkdir -p "$work"
 cd "$work"
 
-# The recipe and patches, from the crate DevKit links.
+# The recipe and patches, from the crate Short Leash links.
 crate="webrtc-sys-$WEBRTC_SYS_VERSION.crate"
 fetch_checked "https://static.crates.io/crates/webrtc-sys/$crate" "$WEBRTC_SYS_SHA256" "$crate"
 tar -xzf "$crate" "webrtc-sys-$WEBRTC_SYS_VERSION/libwebrtc"
@@ -124,7 +124,7 @@ mkdir -p "$pkg/include"
 (cd src && find . \( -name '*.h' -o -name '*.inc' \) -print0 | rsync -a --from0 --files-from=- ./ "$pkg/include/")
 [ -f "$pkg/include/api/rtc_error.h" ] || { echo "the headers weren't copied" >&2; exit 1; }
 
-# What DevKit relies on: no FFmpeg or OpenH264 in the library or its licences.
+# What Short Leash relies on: no FFmpeg or OpenH264 in the library or its licences.
 nm_bin="src/third_party/llvm-build/Release+Asserts/bin/llvm-nm"
 if "$nm_bin" -g --defined-only "$pkg/lib/libwebrtc.a" 2>/dev/null | grep -Eq ' (_avcodec_|_av_malloc|_ff_h264|_WelsCreateSVCEncoder)'; then
   echo "libwebrtc.a contains FFmpeg or OpenH264 code" >&2

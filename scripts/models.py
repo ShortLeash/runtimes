@@ -14,7 +14,7 @@ and writes <file>.gguf, <id>.NOTICE.txt and <id>.result.json to --out. chat
 checks one Hugging Face GGUF against its pinned SHA-256 and size, never
 changing it, runs the chat tests (or loads it, for the largest) and writes
 the NOTICE and result. catalogue merges the results into the catalogue.json
-DevKit's publishing reads. pin lists the files of a repository at a commit
+Short Leash's publishing reads. pin lists the files of a repository at a commit
 that match the include globs (the files the converter reads), with their
 SHA-256, for writing a catalogue entry.
 
@@ -91,7 +91,7 @@ def api(url: str, body: dict = None, tries: int = 6):
     token goes only to the API host, never along a redirect."""
     data = json.dumps(body).encode() if body is not None else None
     for attempt in range(tries):
-        req = urllib.request.Request(url, data=data, headers={"User-Agent": "devkit-runtimes models"})
+        req = urllib.request.Request(url, data=data, headers={"User-Agent": "runtimes models"})
         if data is not None:
             req.add_header("Content-Type", "application/json")
         token = os.environ.get("HF_TOKEN") if url.startswith(HF) else os.environ.get("GITHUB_TOKEN")
@@ -310,7 +310,7 @@ def notice(model: dict, files: list, engines: dict) -> str:
     from, its licence, what changed, the disclaimer, then the licence text."""
     src = model["source"]
     lines = [model["name"], "=" * len(model["name"]), "",
-             f"This notice covers {', '.join(files)}, as DevKit (https://getdevkit.app) distributes it.", ""]
+             f"This notice covers {', '.join(files)}, as Short Leash (https://shortleash.dev) distributes it.", ""]
     lines += ["Created by:"] + [f"  {c}" for c in model["creators"]] + [""]
     if src.get("host") == "github":
         lines += [f"Source: https://github.com/{src['repo']} at commit {src['commit']}"]
@@ -322,22 +322,22 @@ def notice(model: dict, files: list, engines: dict) -> str:
         lines += [f"Based on: {HF}/{model['base']['repo']} at commit {model['base']['commit']}"]
     lines += ["", f"Licence: {LICENSE_NAME[model['license']]}. The full text is at the end of this file.", ""]
     if model["kind"] == "chat":
-        lines += ["Changes: none. DevKit distributes the GGUF file exactly as published above and doesn't",
-                  "modify it. DevKit applies its own copy of the model's chat template when it loads the",
+        lines += ["Changes: none. Short Leash distributes the GGUF file exactly as published above and doesn't",
+                  "modify it. Short Leash applies its own copy of the model's chat template when it loads the",
                   f"model, from {model['chat_template']['source']}.", ""]
     else:
         quants = [q for q in model["quants"] if q != model["converter"].get("reference")]
         tool = f"transcribe.cpp {engines['transcribe_version']} (commit {engines['transcribe_commit']})"
         if quants:
-            lines += [f"Changes: converted to GGUF and quantized ({', '.join(quants)}) by DevKit, with {tool}.",
+            lines += [f"Changes: converted to GGUF and quantized ({', '.join(quants)}) by Short Leash, with {tool}.",
                       "Quantization changes the model's weights, so this is a modified version of the model above.", ""]
         else:
-            lines += [f"Changes: converted to GGUF by DevKit, with {tool}. The weights keep their values;",
+            lines += [f"Changes: converted to GGUF by Short Leash, with {tool}. The weights keep their values;",
                       "only the file format changed.", ""]
     if model.get("copyright"):
         lines += [model["copyright"], ""]
     lines += ["Disclaimer: the model is provided as is, without warranties or conditions of any kind, as",
-              "its licence says. Its creators don't endorse DevKit, and DevKit doesn't endorse the model's",
+              "its licence says. Its creators don't endorse Short Leash, and Short Leash doesn't endorse the model's",
               "output. The licence's own disclaimer and limitation of liability below apply.", "",
               "-" * 72, ""]
     text = (MODELS / "licenses" / LICENSE_TEXT[model["license"]]).read_text(encoding="utf-8")
@@ -454,7 +454,7 @@ def speech(args) -> None:
 # --- Chat -----------------------------------------------------------------
 
 class Server:
-    """llama-server on a free loopback port, on the CPU, with DevKit's chat
+    """llama-server on a free loopback port, on the CPU, with Short Leash's chat
     template in place of the one the GGUF carries."""
 
     def __init__(self, tools: pathlib.Path, gguf: pathlib.Path, template: pathlib.Path, extra: list):
@@ -637,10 +637,10 @@ TESTED = {"transcribe": "full", "vad": "full", "chat": "full", "load": "load"}
 
 
 def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
-    """One model's entry in the released catalogue, in the shape DevKit's
-    manifest lists models (devkit-core's ai::catalogue::Model). DevKit's
+    """One model's entry in the released catalogue, in the shape Short Leash's
+    manifest lists models (devkit-core's ai::catalogue::Model). Short Leash's
     publishing rewrites the URLs to its own server when it mirrors the files.
-    What DevKit doesn't read goes under details.
+    What Short Leash doesn't read goes under details.
 
     >>> m = {"id": "x", "kind": "speech", "name": "X", "license": "mit", "languages": ["en-US"], "creators": ["Y"],
     ...      "source": {"repo": "a/b", "commit": "c"}}
@@ -682,7 +682,7 @@ def catalogue_cmd(args) -> None:
     catalogue = load_catalogue()
     results_dir, out = pathlib.Path(args.results), pathlib.Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    repo = os.environ.get("GITHUB_REPOSITORY", "frankperez87/devkit-runtimes")
+    repo = os.environ.get("GITHUB_REPOSITORY", "ShortLeash/runtimes")
     released = {"schema": catalogue["schema"], "release": args.tag,
                 "generated": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "engines": engine_pins(), "models": []}
@@ -702,7 +702,7 @@ def catalogue_cmd(args) -> None:
             shutil.copy2(results_dir / result["notice"], out / result["notice"])
         entry = merge(model, result, args.tag, repo)
         if entry["license"] not in ALLOWED or any(len(f["sha256"]) != 64 for f in entry["files"]):
-            sys.exit(f"{model['id']}: DevKit would drop this entry (licence or SHA-256)")
+            sys.exit(f"{model['id']}: Short Leash would drop this entry (licence or SHA-256)")
         released["models"].append(entry)
     (out / "catalogue.json").write_text(json.dumps(released, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"catalogue.json: {len(released['models'])} models")

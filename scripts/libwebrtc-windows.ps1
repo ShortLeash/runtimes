@@ -33,7 +33,7 @@ function Run([string]$exe, [string[]]$argv) {
   if ($LASTEXITCODE -ne 0) { throw "${exe} failed with exit code $LASTEXITCODE" }
 }
 
-# The recipe and patches, from the crate DevKit links, checked by SHA-256.
+# The recipe and patches, from the crate Short Leash links, checked by SHA-256.
 $crate = "webrtc-sys-$version.crate"
 if (-not (Test-Path $crate)) {
   Invoke-WebRequest -UseBasicParsing "https://static.crates.io/crates/webrtc-sys/$crate" -OutFile $crate
@@ -120,7 +120,7 @@ Pop-Location
 
 if (-not (Test-Path (Join-Path $pkg 'include\api\rtc_error.h'))) { throw "the headers weren't copied" }
 
-# What DevKit relies on: no FFmpeg or OpenH264 in the library or its licences.
+# What Short Leash relies on: no FFmpeg or OpenH264 in the library or its licences.
 $nm = @(
   'src\third_party\llvm-build\Release+Asserts\bin\llvm-nm.exe',
   (Join-Path $env:ProgramFiles 'Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\x64\bin\llvm-nm.exe'),

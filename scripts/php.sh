@@ -15,8 +15,8 @@
 #
 # Writes out/php-<version>-cli-macos-<arch>.tar.gz and
 # out/php-<version>-fpm-macos-<arch>.tar.gz, each holding its program at the top
-# of the archive (the layout DevKit's PHP installer unpacks). The CLI archive
-# also holds pcov.so, for code coverage; DevKit loads it for the CLI only
+# of the archive (the layout Short Leash's PHP installer unpacks). The CLI archive
+# also holds pcov.so, for code coverage; Short Leash loads it for the CLI only
 # (not a preview's while pcov is in php-extensions-preview-skip.txt).
 set -euo pipefail
 

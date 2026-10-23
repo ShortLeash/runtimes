@@ -1,5 +1,5 @@
 # Converts, vets and tests the models in models/catalogue.json, then
-# releases them as models-<date> with a build attestation. DevKit's
+# releases them as models-<date> with a build attestation. Short Leash's
 # publishing verifies the attestation against this workflow
 # (--signer-workflow …/models.yml --source-ref refs/heads/main
 # --deny-self-hosted-runners), mirrors the files to its own server and signs

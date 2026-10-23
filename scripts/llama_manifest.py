@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Completes a llama.cpp install prefix for DevKit and writes lib/llama-link.json.
+"""Completes a llama.cpp install prefix for Short Leash and writes lib/llama-link.json.
 
 Usage: python3 scripts/llama_manifest.py <llama.cpp source> <build dir> <prefix> <macos|windows> <metal ON|OFF> [--shared]
 
 `cmake --install` leaves out two libraries llama.cpp's common library needs
 (llama-common-base and cpp-httplib) and every header of common, which
-DevKit's chat shim includes (chat.h, common.h and what they include). This
+Short Leash's chat shim includes (chat.h, common.h and what they include). This
 copies them in, then writes a link manifest in the shape transcribe.cpp's
-lib/transcribe-link.json has, so one reader in DevKit's build handles both:
+lib/transcribe-link.json has, so one reader in Short Leash's build handles both:
 
     libraries      link order, most dependent first
     system_libs    and frameworks: what the libraries need from the system

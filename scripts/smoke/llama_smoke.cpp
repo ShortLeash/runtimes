@@ -1,5 +1,5 @@
 // Checks an installed llama.cpp with its common library, linked only from
-// its lib/llama-link.json, the way DevKit's chat shim links it:
+// its lib/llama-link.json, the way Short Leash's chat shim links it:
 //
 //   1. loads a tiny model on the CPU and generates a few tokens;
 //   2. renders a chat template with a tool through common_chat_templates_apply,

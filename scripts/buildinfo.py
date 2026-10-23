@@ -4,7 +4,7 @@
 Usage: python3 scripts/buildinfo.py <out.json> key=value... key=@file.json...
 
 Records the pins from scripts/voice-engines.env, plus each key=value given
-(a value of @file reads that JSON file). DevKit reads msvc from it to pin
+(a value of @file reads that JSON file). Short Leash reads msvc from it to pin
 the Visual C++ Redistributable it installs to at least that version.
 
 >>> parse_env("# note\\nA=1\\nB_2=x y\\n")

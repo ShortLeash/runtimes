@@ -78,7 +78,7 @@ if grep -rnE '(^|[[:space:](])URL +"?https?://' src/cmake/ || grep -rn 'URL_MD5'
 fi
 
 # mariadb-install-db looks for my_print_defaults in an unquoted --basedir, so
-# a path with a space in it (DevKit's home has one) fails; quote it.
+# a path with a space in it (Short Leash's home has one) fails; quote it.
 sed -i '' -E 's/(find_in_dirs|cannot_find_file) my_print_defaults \$basedir\/bin \$basedir\/extra/\1 my_print_defaults "$basedir\/bin" "$basedir\/extra"/' \
   src/scripts/mysql_install_db.sh
 if grep -n 'my_print_defaults \$basedir' src/scripts/mysql_install_db.sh; then
@@ -184,7 +184,7 @@ if grep -n 'Downloading' "$log"; then
   exit 1
 fi
 
-# Keep what DevKit runs: no tests, benchmarks, manuals, headers, static
+# Keep what Short Leash runs: no tests, benchmarks, manuals, headers, static
 # libraries or packaging files.
 rm -rf "$stage"/{mysql-test,mariadb-test,sql-bench,man,include,support-files,docs}
 rm -f "$stage"/lib/*.a
@@ -220,7 +220,7 @@ for p in mariadbd mariadb mariadb-dump mariadb-install-db my_print_defaults mari
 done
 
 # --- Smoke test -------------------------------------------------------------
-# Copied into a folder with a space in its path, as DevKit's home has, it
+# Copied into a folder with a space in its path, as Short Leash's home has, it
 # initialises a data folder, serves a query over TCP on 127.0.0.1 only, dumps
 # and restores a database, logs a user in with a password, and links nothing
 # outside macOS.

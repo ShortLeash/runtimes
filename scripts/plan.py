@@ -20,7 +20,7 @@ hand to one platform's runners, so a test on a branch doesn't take every
 Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
-scripts/php-ext-windows.env. MariaDB builds for macOS only (DevKit takes
+scripts/php-ext-windows.env. MariaDB builds for macOS only (Short Leash takes
 Windows MariaDB from archive.mariadb.org), and PostGIS for macOS
 (postgis) and Windows (postgis_windows), for every Postgres major. Either
 also collects its GPL sources, once per run on Linux (sources).
@@ -88,10 +88,10 @@ def libwebrtc_targets(what: str, platform: str) -> list:
 
 def voice_engines_targets(what: str, platform: str) -> list:
     """The voice-engines builds a run makes: only when asked for by name, since
-    the engines are pinned and change only with DevKit's crates. Each Mac
+    the engines are pinned and change only with Short Leash's crates. Each Mac
     architecture builds on its own runner, so the smoke tests run natively.
     Windows uses Visual Studio 2022, whose MSVC version the build records:
-    DevKit installs at least that Visual C++ Redistributable.
+    Short Leash installs at least that Visual C++ Redistributable.
 
     >>> [(t["runner"], t["arch"]) for t in voice_engines_targets("voice-engines", "all")]
     [('macos-15', 'aarch64'), ('macos-15-intel', 'x86_64'), ('windows-2022', 'x86_64')]

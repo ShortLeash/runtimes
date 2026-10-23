@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds PostGIS against one of the Postgres versions DevKit installs (the
+# Builds PostGIS against one of the Postgres versions Short Leash installs (the
 # theseus-rs builds), for the Mac this runs on, without raster support (no
 # GDAL), with GEOS, PROJ, json-c and protobuf-c linked in statically, and
 # checks it works from another folder.
@@ -183,8 +183,8 @@ done
 rm -rf "$prefix/share/proj"
 
 # --- Smoke test -------------------------------------------------------------
-# Copied into a folder with a space in its path, as DevKit's home has, with
-# proj.db where DevKit puts it, PostGIS and its topology load, measure a
+# Copied into a folder with a space in its path, as Short Leash's home has, with
+# proj.db where Short Leash puts it, PostGIS and its topology load, measure a
 # distance, transform with PROJ's database, encode a vector tile with
 # protobuf-c, and link nothing outside macOS.
 moved="$work/Application Support/postgresql"

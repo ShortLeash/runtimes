@@ -1,5 +1,5 @@
 # Checks a Windows PostGIS build (scripts/postgis-windows.sh) in the MSVC
-# Postgres DevKit installs (the theseus-rs build it was built against). Run
+# Postgres Short Leash installs (the theseus-rs build it was built against). Run
 # from a Visual Studio developer shell (dumpbin on the PATH).
 #
 #   pwsh scripts/postgis-smoke.ps1 <Postgres folder> <stage folder>
@@ -7,7 +7,7 @@
 # The stage is what the archive holds: lib/ (postgis-3.dll and
 # postgis_topology-3.dll), extension/, proj/proj.db, doc/, and bin/ if the
 # modules need DLLs of their own. Copied into a folder with a space in its
-# path, as DevKit's home can have, with proj.db where DevKit puts it and
+# path, as Short Leash's home can have, with proj.db where Short Leash puts it and
 # PROJ_DATA pointing at it, PostGIS and its topology load, measure a
 # distance, transform with the shipped proj.db, encode a vector tile and a
 # FlatGeobuf, report the pinned GEOS, PROJ, libxml2, json-c and protobuf-c,
@@ -66,7 +66,7 @@ Copy-Item -Path (Join-Path $Stage 'extension\*') -Destination (Join-Path $moved 
 $projData = Join-Path $moved 'share\proj'
 New-Item -ItemType Directory -Force -Path $projData | Out-Null
 Copy-Item -Path (Join-Path $Stage 'proj\*') -Destination $projData
-# DevKit copies bin/ next to postgres.exe: Windows looks for a module's DLLs
+# Short Leash copies bin/ next to postgres.exe: Windows looks for a module's DLLs
 # in the program's folder.
 if ($own) { Copy-Item -Path (Join-Path $Stage 'bin\*') -Destination (Join-Path $moved 'bin') }
 

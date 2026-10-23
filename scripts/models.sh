@@ -13,7 +13,7 @@
 #
 # The tools come from transcribe.cpp and llama.cpp at the engine pins in
 # voice-engines.env, so the converter, the quantizer and the tests are the
-# engines DevKit ships. Speech models are converted with transcribe.cpp's
+# engines Short Leash ships. Speech models are converted with transcribe.cpp's
 # converter from upstream files pinned by commit and SHA-256, in transcribe.cpp's
 # locked Python environments (uv checks every package against uv.lock).
 # Hugging Face GGUFs (the Qwen models) are only checked and tested, never

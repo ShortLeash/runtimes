@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds PostGIS for Windows x64 against one of the Postgres versions DevKit
+# Builds PostGIS for Windows x64 against one of the Postgres versions Short Leash
 # installs there (the theseus-rs builds, compiled with MSVC), without raster
 # support (no GDAL). Runs in MSYS2's UCRT64 shell: GCC whose C runtime is the
 # Universal CRT the MSVC Postgres uses too.
@@ -258,8 +258,8 @@ fi
 # the server does. (PostGIS 3.6 has no PG_TRY; this keeps it safe if it adds
 # one.)
 c_h="$includedir_server/c.h"
-perl -0pi -e 's/#ifdef __MINGW64__\ntypedef intptr_t sigjmp_buf\[5\];/#if 0 \/* DevKit: the MSVC server longjmps with the C runtime *\/\ntypedef intptr_t sigjmp_buf[5];/' "$c_h"
-grep -q 'DevKit: the MSVC server longjmps' "$c_h" || { echo "Couldn't switch c.h to the C runtime's setjmp" >&2; exit 1; }
+perl -0pi -e 's/#ifdef __MINGW64__\ntypedef intptr_t sigjmp_buf\[5\];/#if 0 \/* Short Leash: the MSVC server longjmps with the C runtime *\/\ntypedef intptr_t sigjmp_buf[5];/' "$c_h"
+grep -q 'Short Leash: the MSVC server longjmps' "$c_h" || { echo "Couldn't switch c.h to the C runtime's setjmp" >&2; exit 1; }
 
 # The import library modules link postgres.exe's exports through.
 (

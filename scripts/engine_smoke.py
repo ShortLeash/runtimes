@@ -8,7 +8,7 @@ Usage: python3 scripts/engine_smoke.py --pkg <dir> --dr-wav <dir> --transcribe-m
 Compiles scripts/smoke/transcribe_smoke.c and scripts/smoke/llama_smoke.cpp
 against the package, with link lines built from nothing but
 transcribe/lib/transcribe-link.json and llama/lib/llama-link.json (what
-DevKit's build reads), then runs them: transcribe.cpp must transcribe
+Short Leash's build reads), then runs them: transcribe.cpp must transcribe
 fixtures/en.wav close to its reference text, and llama.cpp must generate,
 render a chat template with a tool and parse a tool call. Writes what it saw
 to --results.
