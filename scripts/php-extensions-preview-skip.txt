@@ -10,7 +10,6 @@
 apcu        # 5.1.28: XtOffsetOf and php_verror's old signature
 ev          # 1.2.3: XtOffsetOf
 event       # 3.1.4: XtOffsetOf
-excimer     # 1.2.6: XtOffsetOf
 grpc        # 1.85.0RC1: XtOffsetOf
 igbinary    # 3.2.17RC1: zval_dtor
 imagick     # 3.8.1: XtOffsetOf
