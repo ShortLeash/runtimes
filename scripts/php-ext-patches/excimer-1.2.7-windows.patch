@@ -13,13 +13,15 @@ new file mode 100644
 index 0000000..a151449
 --- /dev/null
 +++ b/config.w32
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,11 @@
 +// vim:ft=javascript
 +
 +ARG_ENABLE("excimer", "whether to enable excimer support", "no");
 +
 +if (PHP_EXCIMER != "no") {
 +	EXTENSION("excimer", "excimer.c excimer_mutex.c excimer_timer.c excimer_log.c", PHP_EXCIMER_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
++	// timerlib/ includes the application's timerlib_config.h from here.
++	ADD_FLAG("CFLAGS_EXCIMER", "/I " + configure_module_dirname);
 +	ADD_SOURCES(configure_module_dirname + "\\timerlib", "timerlib_common.c timerlib_win32.c", "excimer");
 +	AC_DEFINE("HAVE_EXCIMER", 1, "Whether excimer is enabled");
 +}
