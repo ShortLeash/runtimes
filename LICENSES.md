@@ -72,6 +72,7 @@ Built against windows.php.net's devel pack for each PHP version, or repackaged u
 | mongodb | Apache-2.0 | [mongodb/mongo-php-driver](https://github.com/mongodb/mongo-php-driver)'s own Windows DLLs, unchanged |
 | sqlsrv | MIT | [microsoft/msphpsql](https://github.com/microsoft/msphpsql)'s DLLs, signed by Microsoft, unchanged |
 | pdo_sqlsrv | MIT | [microsoft/msphpsql](https://github.com/microsoft/msphpsql)'s DLLs, signed by Microsoft, unchanged |
+| excimer | Apache-2.0 | [wikimedia/mediawiki-php-excimer](https://github.com/wikimedia/mediawiki-php-excimer), with `scripts/php-ext-patches/excimer-1.2.7-windows.patch` (a Windows timer, under the same licence) |
 
 grpc's DLL compiles in gRPC core and the copies of these libraries that its PECL tarball carries in `third_party/`. It doesn't use c-ares on Windows. Each zip's `licenses/php_grpc/` holds grpc's `LICENSE` and `NOTICE.txt` and each library's licence, taken from grpc's v1.84.0 tag and the commits it pins for its submodules.
 

@@ -317,6 +317,17 @@ foreach ($ext in $wanted) {
         throw "php_$ext.dll doesn't load into PHP ${full}: pcov\start isn't defined"
       }
     }
+    if ($ext -eq 'excimer') {
+      # Its timer works: 100 ms of work at 1 ms makes about 100 events
+      # (fewer samples, each counting the periods it covers, where Windows
+      # has no high-resolution timer).
+      $sampling = '$p = new ExcimerProfiler(); $p->setPeriod(0.001); $p->start(); for ($t = hrtime(true); hrtime(true) - $t < 100e6;) {} $p->stop(); exit($p->getLog()->getEventCount() >= 50 ? 0 : 1);'
+      try {
+        & "$phpDir\php.exe" -n -d "extension_dir=$stage\ext" -d "extension=$ext" -r $sampling
+      } catch {
+        throw "php_$ext.dll loads into PHP ${full}, but its profiler took too few samples"
+      }
+    }
   } finally {
     $env:PATH = $pathBefore
   }
