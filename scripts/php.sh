@@ -90,7 +90,8 @@ fi
 swoole_tag="${SWOOLE_TAG:-v6.2.2}"
 ./spc download "${source_args[@]}" --for-extensions="$exts${shared:+,$shared}" --prefer-pre-built --retry=3 \
   -U "swoole:https://github.com/swoole/swoole-src/archive/refs/tags/$swoole_tag.tar.gz"
-build_args=()
+# curl asks the system's resolver, not c-ares (see the patch).
+build_args=(--with-added-patch="$here/spc-patches/curl-system-resolver.php")
 [ "$php_minor" -lt 803 ] && build_args+=(--with-added-patch="$here/spc-patches/c17.php")
 if [ -n "$shared" ]; then build_args+=(--build-shared="$shared"); fi
 # libavif gives gd imageavif() (imagick reads AVIF on its own).
@@ -114,6 +115,12 @@ missing="$("$php" -r '
 ' "$exts")"
 if ! "$php" -r 'exit(function_exists("imageavif") ? 0 : 1);'; then
   missing="$missing gd-avif"
+fi
+# curl must resolve through the system (so /etc/resolver applies), still
+# asynchronously: its threaded resolver, not c-ares.
+if ! "$php" -n -r '$v = curl_version(); exit(empty($v["ares"]) && ($v["features"] & CURL_VERSION_ASYNCHDNS) ? 0 : 1);'; then
+  echo "PHP's curl doesn't use the system's resolver: $("$php" -n -r '$a = curl_version()["ares"] ?? ""; echo $a !== "" ? "it uses c-ares $a" : "it has no asynchronous DNS";')" >&2
+  exit 1
 fi
 pcov="buildroot/modules/pcov.so"
 cli_files=(php)
