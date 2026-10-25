@@ -138,6 +138,9 @@ jobs:
           PHP_SOURCE_URL: ${{ matrix.php.url }}
           PHP_SOURCE_SHA256: ${{ matrix.php.sha256 }}
         run: scripts/php.sh "$PHP_BUILD_VERSION" out
+      # Short Leash serves .test through /etc/resolver/test: curl must use it.
+      - name: Check curl resolves through /etc/resolver
+        run: scripts/php-resolver-smoke.sh out/php-*-cli-macos-*.tar.gz
       - uses: actions/upload-artifact@v7
         with:
           name: php-${{ matrix.php.version }}-${{ matrix.runner }}
