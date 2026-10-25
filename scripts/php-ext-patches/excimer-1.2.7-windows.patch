@@ -96,11 +96,12 @@ diff --git a/excimer_mutex.h b/excimer_mutex.h
 index 2353fa5..5a99b73 100644
 --- a/excimer_mutex.h
 +++ b/excimer_mutex.h
-@@ -15,30 +15,39 @@
+@@ -15,30 +15,40 @@
  
  #ifndef EXCIMER_MUTEX_H
  #define EXCIMER_MUTEX_H
 +#ifdef _WIN32
++#include <winsock2.h>
 +#include <windows.h>
 +/* Windows has no pthreads: a slim reader/writer lock, held exclusively. */
 +typedef SRWLOCK excimer_mutex_t;
@@ -436,7 +437,7 @@ new file mode 100644
 index 0000000..a20684a
 --- /dev/null
 +++ b/timerlib/timerlib_win32.h
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,52 @@
 +/* Copyright 2026 the ShortLeash/runtimes contributors
 + *
 + * Licensed under the Apache License, Version 2.0 (the "License");
@@ -454,6 +455,7 @@ index 0000000..a20684a
 +#ifndef TIMERLIB_WIN32_H
 +#define TIMERLIB_WIN32_H
 +
++#include <winsock2.h>
 +#include <windows.h>
 +#include <time.h>
 +
