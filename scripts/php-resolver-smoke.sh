@@ -55,6 +55,8 @@ while True:
 ' "$dns_port" &
   pids+=($!)
   ours=true
+  # A Mac that never had a resolver file has no /etc/resolver (CI's runners).
+  sudo mkdir -p /etc/resolver
   printf 'nameserver 127.0.0.1\nport %s\n' "$dns_port" | sudo tee "$resolver" >/dev/null
 fi
 
