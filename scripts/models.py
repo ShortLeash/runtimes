@@ -643,13 +643,19 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     What Short Leash doesn't read goes under details.
 
     >>> m = {"id": "x", "kind": "speech", "name": "X", "license": "mit", "languages": ["en-US"], "creators": ["Y"],
-    ...      "source": {"repo": "a/b", "commit": "c"}}
+    ...      "source": {"repo": "a/b", "commit": "c"}, "blurb": "For English."}
     >>> r = {"files": [{"name": "x-Q8_0.gguf", "quant": "Q8_0", "sha256": "d", "size": 1, "asset": True}],
     ...      "notice": "x.NOTICE.txt", "test": {"level": "transcribe"}, "vetted": {}}
     >>> e = merge(m, r, "models-2026-10-17", "o/r")
-    >>> e["files"][0]["url"], e["languages"], e["tested"], e["version"]
-    ('https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf', ['en'], 'full', 'c')
+    >>> e["files"][0]["url"], e["languages"], e["tested"], e["version"], e["blurb"]
+    ('https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf', ['en'], 'full', 'c', 'For English.')
+    >>> merge(dict(m, blurb=""), r, "models-2026-10-17", "o/r")
+    Traceback (most recent call last):
+    SystemExit: x: needs a blurb, one line of at most 120 characters that people read in Settings › Models
     """
+    blurb = model.get("blurb")
+    if not (isinstance(blurb, str) and 0 < len(blurb) <= 120 and "\n" not in blurb):
+        sys.exit(f"{model['id']}: needs a blurb, one line of at most 120 characters that people read in Settings › Models")
     release = f"https://github.com/{repo}/releases/download/{tag}"
     entry = {
         "id": model["id"],
@@ -662,6 +668,7 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
         "files": [{"quant": f["quant"], "url": f"{release}/{f['name']}" if f["asset"] else f["url"],
                    "sha256": f["sha256"], "size": f["size"]} for f in result["files"]],
         "tested": TESTED[result["test"]["level"]],
+        "blurb": blurb,
     }
     if model.get("chat_template"):
         entry["llm"] = {"template": (MODELS / model["chat_template"]["file"]).read_text(encoding="utf-8"),

@@ -77,6 +77,7 @@
         "Q5_K_M"
       ],
       "use": "Default for dictation and meetings; Q5_K_M on 8 GB Macs",
+      "blurb": "Fast and accurate for English and 24 other European languages. The default for dictation and meetings.",
       "smoke": [
         {
           "audio": "en.wav",
@@ -146,6 +147,7 @@
         "Q8_0"
       ],
       "use": "Fallback",
+      "blurb": "NVIDIA's original Parakeet, for the same 25 European languages. Try it if Parakeet Ultra mishears you.",
       "smoke": [
         {
           "audio": "en.wav",
@@ -222,6 +224,7 @@
         "Q8_0"
       ],
       "use": "Hindi, Arabic, Japanese and Korean, in batch mode",
+      "blurb": "For Hindi, Arabic, Japanese and Korean, and 24 more languages, English included.",
       "smoke": [
         {
           "audio": "ja.wav",
@@ -345,6 +348,7 @@
         "Q8_0"
       ],
       "use": "Chinese",
+      "blurb": "For Chinese, Cantonese and 27 more languages, English included.",
       "smoke": [
         {
           "audio": "zh.wav",
@@ -487,6 +491,7 @@
         "Q6_K"
       ],
       "use": "Optional re-pass on Macs with 32 GB or more and machines with a GPU",
+      "blurb": "IBM's model for English, French, German, Spanish, Portuguese and Japanese. Larger and slower.",
       "smoke": [
         {
           "audio": "en.wav",
@@ -694,6 +699,7 @@
         "Q5_0"
       ],
       "use": "Other languages",
+      "blurb": "Understands about 100 languages, for those Parakeet doesn't know. Best with graphics to run on.",
       "smoke": [
         {
           "audio": "en.wav",
@@ -904,6 +910,7 @@
         "Q5_1"
       ],
       "use": "Other languages on machines without a GPU",
+      "blurb": "A smaller Whisper for about 100 languages, quick enough without graphics.",
       "smoke": [
         {
           "audio": "en.wav",
@@ -939,6 +946,7 @@
         "F32"
       ],
       "use": "Voice activity detection, bundled",
+      "blurb": "Finds where speech starts and stops, so silence never reaches the speech model.",
       "smoke": [
         {
           "audio": "en.wav"
@@ -978,6 +986,7 @@
       },
       "test": "chat",
       "use": "8 GB Apple silicon, Intel Macs, Windows on the CPU or an integrated GPU, 6 GB GPUs",
+      "blurb": "For 8 GB Macs and computers with little graphics memory. Chat only reads with it; it offers no actions.",
       "context": 16384,
       "thinking": true
     },
@@ -1012,6 +1021,7 @@
       },
       "test": "chat",
       "use": "16–32 GB Apple silicon; Windows with 8–12 GB NVIDIA or 8 GB or more AMD or Intel",
+      "blurb": "For chat, Explain and drafts on 16 GB Macs and 8 GB graphics cards.",
       "context": 32768,
       "thinking": true
     },
@@ -1046,6 +1056,7 @@
       },
       "test": "load",
       "use": "Macs whose GPU can use about 22 GB or more (36 GB or more); Ryzen AI Max; 24 GB GPUs",
+      "blurb": "The most capable local model, for Macs with 36 GB or more and 24 GB graphics cards.",
       "context": 32768,
       "thinking": true
     }
