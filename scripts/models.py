@@ -636,6 +636,34 @@ def iso639_1(languages: list) -> list:
 TESTED = {"transcribe": "full", "vad": "full", "chat": "full", "load": "load"}
 
 
+def blurb_ok(blurb) -> bool:
+    """Whether a blurb is one line of 1 to 120 characters, without spaces at
+    either end. Short Leash's publishing (builds/models.py in the app's
+    repository) refuses any other, so keep the two rules the same.
+
+    >>> blurb_ok("For English."), blurb_ok(""), blurb_ok("   "), blurb_ok(" For English.")
+    (True, False, False, False)
+    >>> blurb_ok("One\\rtwo"), blurb_ok("One\\u2028two"), blurb_ok("x" * 121), blurb_ok(None)
+    (False, False, False, False)
+    """
+    return (isinstance(blurb, str) and 0 < len(blurb) <= 120 and blurb == blurb.strip()
+            and len(blurb.splitlines()) == 1)
+
+
+def check_blurbs(catalogue: dict) -> None:
+    """Fails unless every model has a blurb people can read in Settings › Models.
+    The Models workflow runs it first, so a bad blurb stops the run before any build.
+
+    >>> check_blurbs(load_catalogue())
+    >>> check_blurbs({"speech": [{"id": "x", "blurb": " "}], "chat": []})
+    Traceback (most recent call last):
+    SystemExit: x: needs a blurb, one line of at most 120 characters that people read in Settings › Models
+    """
+    for model in catalogue["speech"] + catalogue["chat"]:
+        if not blurb_ok(model.get("blurb")):
+            sys.exit(f"{model['id']}: needs a blurb, one line of at most 120 characters that people read in Settings › Models")
+
+
 def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     """One model's entry in the released catalogue, in the shape Short Leash's
     manifest lists models (leash-core's ai::catalogue::Model). Short Leash's
@@ -653,9 +681,8 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     Traceback (most recent call last):
     SystemExit: x: needs a blurb, one line of at most 120 characters that people read in Settings › Models
     """
-    blurb = model.get("blurb")
-    if not (isinstance(blurb, str) and 0 < len(blurb) <= 120 and "\n" not in blurb):
-        sys.exit(f"{model['id']}: needs a blurb, one line of at most 120 characters that people read in Settings › Models")
+    check_blurbs({"speech": [model], "chat": []})
+    blurb = model["blurb"]
     release = f"https://github.com/{repo}/releases/download/{tag}"
     entry = {
         "id": model["id"],
@@ -717,6 +744,7 @@ def catalogue_cmd(args) -> None:
 
 def ids_cmd(args) -> None:
     catalogue = load_catalogue()
+    check_blurbs(catalogue)
     kinds = [args.kind] if args.kind else ["speech", "chat"]
     print(json.dumps([m["id"] for k in kinds for m in catalogue[k]]))
 
