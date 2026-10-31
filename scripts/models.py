@@ -636,6 +636,34 @@ def iso639_1(languages: list) -> list:
 TESTED = {"transcribe": "full", "vad": "full", "chat": "full", "load": "load"}
 
 
+def blurb_ok(blurb) -> bool:
+    """Whether a blurb is one line of 1 to 120 characters, without spaces at
+    either end. Short Leash's publishing (builds/models.py in the app's
+    repository) refuses any other, so keep the two rules the same.
+
+    >>> blurb_ok("For English."), blurb_ok(""), blurb_ok("   "), blurb_ok(" For English.")
+    (True, False, False, False)
+    >>> blurb_ok("One\\rtwo"), blurb_ok("One\\u2028two"), blurb_ok("x" * 121), blurb_ok(None)
+    (False, False, False, False)
+    """
+    return (isinstance(blurb, str) and 0 < len(blurb) <= 120 and blurb == blurb.strip()
+            and len(blurb.splitlines()) == 1)
+
+
+def check_blurbs(catalogue: dict) -> None:
+    """Fails unless every model has a blurb people can read in Settings › Models.
+    The Models workflow runs it first, so a bad blurb stops the run before any build.
+
+    >>> check_blurbs(load_catalogue())
+    >>> check_blurbs({"speech": [{"id": "x", "blurb": " "}], "chat": []})
+    Traceback (most recent call last):
+    SystemExit: x: needs a blurb, one line of at most 120 characters that people read in Settings › Models
+    """
+    for model in catalogue["speech"] + catalogue["chat"]:
+        if not blurb_ok(model.get("blurb")):
+            sys.exit(f"{model['id']}: needs a blurb, one line of at most 120 characters that people read in Settings › Models")
+
+
 def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     """One model's entry in the released catalogue, in the shape Short Leash's
     manifest lists models (leash-core's ai::catalogue::Model). Short Leash's
@@ -643,13 +671,18 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
     What Short Leash doesn't read goes under details.
 
     >>> m = {"id": "x", "kind": "speech", "name": "X", "license": "mit", "languages": ["en-US"], "creators": ["Y"],
-    ...      "source": {"repo": "a/b", "commit": "c"}}
+    ...      "source": {"repo": "a/b", "commit": "c"}, "blurb": "For English."}
     >>> r = {"files": [{"name": "x-Q8_0.gguf", "quant": "Q8_0", "sha256": "d", "size": 1, "asset": True}],
     ...      "notice": "x.NOTICE.txt", "test": {"level": "transcribe"}, "vetted": {}}
     >>> e = merge(m, r, "models-2026-10-17", "o/r")
-    >>> e["files"][0]["url"], e["languages"], e["tested"], e["version"]
-    ('https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf', ['en'], 'full', 'c')
+    >>> e["files"][0]["url"], e["languages"], e["tested"], e["version"], e["blurb"]
+    ('https://github.com/o/r/releases/download/models-2026-10-17/x-Q8_0.gguf', ['en'], 'full', 'c', 'For English.')
+    >>> merge(dict(m, blurb=""), r, "models-2026-10-17", "o/r")
+    Traceback (most recent call last):
+    SystemExit: x: needs a blurb, one line of at most 120 characters that people read in Settings › Models
     """
+    check_blurbs({"speech": [model], "chat": []})
+    blurb = model["blurb"]
     release = f"https://github.com/{repo}/releases/download/{tag}"
     entry = {
         "id": model["id"],
@@ -662,6 +695,7 @@ def merge(model: dict, result: dict, tag: str, repo: str) -> dict:
         "files": [{"quant": f["quant"], "url": f"{release}/{f['name']}" if f["asset"] else f["url"],
                    "sha256": f["sha256"], "size": f["size"]} for f in result["files"]],
         "tested": TESTED[result["test"]["level"]],
+        "blurb": blurb,
     }
     if model.get("chat_template"):
         entry["llm"] = {"template": (MODELS / model["chat_template"]["file"]).read_text(encoding="utf-8"),
@@ -710,6 +744,7 @@ def catalogue_cmd(args) -> None:
 
 def ids_cmd(args) -> None:
     catalogue = load_catalogue()
+    check_blurbs(catalogue)
     kinds = [args.kind] if args.kind else ["speech", "chat"]
     print(json.dumps([m["id"] for k in kinds for m in catalogue[k]]))
 
