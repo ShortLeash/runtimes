@@ -56,6 +56,10 @@ They link these libraries statically. GMP, GNU gettext, GNU libiconv, libde265, 
 | unixODBC | sqlsrv, pdo_sqlsrv | LGPL-2.1-or-later |
 | zlib | zlib and most of the above | Zlib |
 
+### PHP 8.0 and 8.1
+
+The `php-8.0.30` and `php-8.1.34` releases aren't built here. They are static-php-cli's own builds from dl.static-php.dev, released unchanged by `scripts/php-repackaged.sh`: PHP under the PHP License 3.01, with the extensions of static-php-cli's bulk build and the libraries those link statically, each under its own license. Their line editing is libedit, not GNU readline. static-php-cli (MIT) publishes the recipe that builds them, and rebuilds PHP against a changed copy of any of the libraries.
+
 ## PHP extensions for Windows
 
 Built against windows.php.net's devel pack for each PHP version, or repackaged unchanged from the DLLs an extension's own project publishes, and load-tested in that version's official PHP.
