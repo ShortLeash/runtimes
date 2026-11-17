@@ -15,9 +15,12 @@ released yet: each builds its newest pre-release (8.6.0RC3), with the
 tarball's URL and php.net's SHA-256 for php.sh to check, on the same rules.
 The php output is a list of {"version"} objects, previews adding "url" and
 "sha256". When php.net's pre-release feed fails, the run warns and builds
-no previews, so the stable releases still go out. PLATFORM limits a run by
-hand to one platform's runners, so a test on a branch doesn't take every
-Mac runner.
+no previews, so the stable releases still go out. PHP_REPACKAGED in
+scripts/php-repackaged.env names the releases past their end of life (8.0.30,
+8.1.34): php-repackaged.sh releases upstream's own builds of them unchanged,
+once, so a run takes one only while its files aren't all released, and marks
+it {"repackaged": true}. PLATFORM limits a run by hand to one platform's
+runners, so a test on a branch doesn't take every Mac runner.
 PHP_WINDOWS_MINORS (default "8.0 8.1 8.2 8.3 8.4 8.5") names the PHP minors
 php-ext-windows builds extensions for, with the pins in
 scripts/php-ext-windows.env. MariaDB builds for macOS only (Short Leash takes
@@ -280,11 +283,14 @@ def latest_preview(pre_releases: dict, minor: str) -> dict | None:
     return {"version": version, "url": url, "sha256": sha256}
 
 
-def php_matrix(what: str, published: set, latest: dict, previews: dict) -> list:
+def php_matrix(what: str, published: set, latest: dict, previews: dict, repackaged: tuple = ()) -> list:
     """The PHP builds a run makes, one {"version"} object each; a preview's
     also names php.net's tarball and its SHA-256 ("url", "sha256"). A
     scheduled run builds only the releases and previews not published for
-    every Mac architecture yet; "all" and "php" build every one.
+    every Mac architecture yet; "all" and "php" build every one. A
+    repackaged release (scripts/php-repackaged.env) is upstream's build,
+    which never changes: any of those runs takes it, marked "repackaged",
+    only until its files are published for every Mac architecture.
 
     >>> latest = {"8.4": "8.4.26", "8.5": "8.5.11"}
     >>> previews = {"8.6": {"version": "8.6.0RC3", "url": "https://downloads.php.net/~b/php-8.6.0RC3.tar.xz", "sha256": "bb" * 32}}
@@ -298,14 +304,21 @@ def php_matrix(what: str, published: set, latest: dict, previews: dict) -> list:
     [{'version': '8.5.11'}]
     >>> php_matrix("ruby", set(), latest, previews)
     []
+    >>> php_matrix("scheduled", set(php_assets("8.4.26") + php_assets("8.5.11")), latest, {}, ("8.0.30", "8.1.34"))
+    [{'version': '8.0.30', 'repackaged': True}, {'version': '8.1.34', 'repackaged': True}]
+    >>> php_matrix("php", set(php_assets("8.0.30") + php_assets("8.1.34")[:3]), {}, {}, ("8.0.30", "8.1.34"))
+    [{'version': '8.1.34', 'repackaged': True}]
+    >>> php_matrix("ruby", set(), {}, {}, ("8.0.30",))
+    []
     """
+    if what not in ("scheduled", "all", "php"):
+        return []
+    once = [{"version": v, "repackaged": True} for v in repackaged if not set(php_assets(v)) <= published]
     if what == "scheduled":
         php = [{"version": latest[m]} for m in stale(published, latest)]
         php += [previews[m] for m in stale(published, {m: p["version"] for m, p in previews.items()})]
-        return php
-    if what in ("all", "php"):
-        return [{"version": v} for v in latest.values()] + list(previews.values())
-    return []
+        return php + once
+    return [{"version": v} for v in latest.values()] + list(previews.values()) + once
 
 
 def php_assets(version: str) -> list:
@@ -393,8 +406,10 @@ def main() -> None:
     latest = latest_releases(minors) if builds_php else {}
     preview_minors = os.environ.get("PHP_PREVIEW_MINORS", "").split()
     previews = latest_previews(preview_minors) if builds_php and preview_minors else {}
-    php = php_matrix(what, have, latest, previews)
-    pins = parse_env((pathlib.Path(__file__).resolve().parent / "php-ext-windows.env").read_text(encoding="utf-8"))
+    here = pathlib.Path(__file__).resolve().parent
+    repackaged = parse_env((here / "php-repackaged.env").read_text(encoding="utf-8")).get("PHP_REPACKAGED", "").split()
+    php = php_matrix(what, have, latest, previews, tuple(repackaged) if builds_php else ())
+    pins = parse_env((here / "php-ext-windows.env").read_text(encoding="utf-8"))
     windows_minors = os.environ.get("PHP_WINDOWS_MINORS", "8.0 8.1 8.2 8.3 8.4 8.5").split()
     print(f"php={json.dumps(php)}")
     print(f"ruby={str(what in ('all', 'ruby')).lower()}")

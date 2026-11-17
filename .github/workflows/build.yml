@@ -9,7 +9,10 @@
 #
 # Every day it builds each PHP patch release php.net has published that isn't
 # released here yet, and the newest pre-release of each PHP preview minor
-# (PHP_PREVIEW_MINORS), from a tarball checked against php.net's SHA-256. Run
+# (PHP_PREVIEW_MINORS), from a tarball checked against php.net's SHA-256. PHP
+# 8.0 and 8.1, past their end of life, aren't built: static-php-cli's own
+# builds of their last releases are released unchanged, once, each checked
+# against a SHA-256 pinned in scripts/php-repackaged.env. Run
 # it by hand (Actions › Build › Run workflow) for a new Ruby, pgvector,
 # memcached, MariaDB or PostGIS release, or to rebuild everything. libwebrtc
 # builds only when asked for by name (what: libwebrtc); it takes an hour or
@@ -125,13 +128,16 @@ jobs:
       matrix:
         runner: ${{ fromJSON(needs.plan.outputs.mac_runners) }}
         # {"version"} objects; a preview's also has "url" and "sha256", for
-        # php.sh to check php.net's tarball against.
+        # php.sh to check php.net's tarball against. One marked "repackaged"
+        # is a release past its end of life: upstream's build, released
+        # unchanged after its pinned SHA-256 checks (php-repackaged.env).
         php: ${{ fromJSON(needs.plan.outputs.php) }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
       - name: Build PHP ${{ matrix.php.version }}
+        if: ${{ !matrix.php.repackaged }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PHP_BUILD_VERSION: ${{ matrix.php.version }}
@@ -139,8 +145,15 @@ jobs:
           PHP_SOURCE_SHA256: ${{ matrix.php.sha256 }}
         run: scripts/php.sh "$PHP_BUILD_VERSION" out
       # Short Leash serves .test through /etc/resolver/test: curl must use it.
+      # Upstream's builds are released as they are, so this checks ours only.
       - name: Check curl resolves through /etc/resolver
+        if: ${{ !matrix.php.repackaged }}
         run: scripts/php-resolver-smoke.sh out/php-*-cli-macos-*.tar.gz
+      - name: Repackage PHP ${{ matrix.php.version }}
+        if: ${{ matrix.php.repackaged }}
+        env:
+          PHP_BUILD_VERSION: ${{ matrix.php.version }}
+        run: scripts/php-repackaged.sh "$PHP_BUILD_VERSION" out
       - uses: actions/upload-artifact@v7
         with:
           name: php-${{ matrix.php.version }}-${{ matrix.runner }}
