@@ -5,7 +5,8 @@ Usage: PLATFORM=<all|macos|windows> python3 scripts/plan.py <what> <published as
 
 <what> is the workflow input (all, php, ruby, pgvector, memcached, libwebrtc,
 voice-engines, php-ext-windows, mariadb or postgis), or "scheduled"
-for the daily run. The daily run builds only the PHP versions whose newest
+for the daily run, which Run workflow offers too, to start it by hand. The
+daily run builds only the PHP versions whose newest
 php.net release isn't on this repository's releases for both Mac
 architectures yet, and nothing else. Either way it names each version's
 exact release (8.4.26), looked up once here, so every runner builds the same

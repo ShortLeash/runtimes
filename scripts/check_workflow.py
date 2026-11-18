@@ -12,6 +12,10 @@ from the if: means a run of only that job releases nothing, and an undeclared
 output reads as an empty string. The plan job runs this, so such a merge
 turns the run red instead.
 
+It also checks that Run workflow offers "scheduled", the daily run's own
+choice, so the daily run can be started by hand without rebuilding what's
+already released.
+
 It reads the workflow (.github/workflows/build.yml by default) with PyYAML.
 Without PyYAML it says so and skips the check, unless --require-yaml (CI)
 makes that an error.
@@ -22,6 +26,8 @@ import re
 import sys
 
 NOT_BUILDS = ("plan", "release")
+# What the daily run asks plan.py for: only what isn't released yet.
+DAILY = "scheduled"
 PLAN_OUTPUT = re.compile(r"needs\.plan\.outputs\.([A-Za-z0-9_-]+)")
 STEP_OUTPUT = re.compile(r"^\$\{\{\s*steps\.plan\.outputs\.([A-Za-z0-9_-]+)\s*\}\}$")
 
@@ -102,6 +108,37 @@ def problems(workflow: dict) -> list:
     return out
 
 
+def choices(workflow: dict) -> list:
+    """What a run by hand can be asked to build: the options of the what
+    input. PyYAML reads the key "on" as True (YAML 1.1), so both are looked
+    under.
+
+    >>> choices({True: {"workflow_dispatch": {"inputs": {"what": {"options": ["all", "php"]}}}}})
+    ['all', 'php']
+    >>> choices({"on": {"schedule": [{"cron": "17 6 * * *"}], "workflow_dispatch": None}})
+    []
+    """
+    triggers = workflow.get("on") or workflow.get(True) or {}
+    by_hand = (triggers.get("workflow_dispatch") if isinstance(triggers, dict) else None) or {}
+    what = (by_hand.get("inputs") or {}).get("what") or {}
+    return list(what.get("options") or [])
+
+
+def daily_by_hand(workflow: dict) -> list:
+    """What's wrong with starting the daily run by hand. Every other choice
+    builds what it names whether or not it's released, and a rebuilt PHP is
+    downloaded again by everyone who has it.
+
+    >>> daily_by_hand({"on": {"workflow_dispatch": {"inputs": {"what": {"options": ["all", "php"]}}}}})
+    ["Run workflow doesn't offer scheduled, so the daily run can't be started by hand"]
+    >>> daily_by_hand({"on": {"workflow_dispatch": {"inputs": {"what": {"options": ["scheduled", "all"]}}}}})
+    []
+    """
+    if DAILY in choices(workflow):
+        return []
+    return [f"Run workflow doesn't offer {DAILY}, so the daily run can't be started by hand"]
+
+
 def main(argv: list) -> None:
     require = "--require-yaml" in argv
     args = [a for a in argv if a != "--require-yaml"]
@@ -113,12 +150,14 @@ def main(argv: list) -> None:
             sys.exit("PyYAML isn't installed, and the workflow check needs it")
         print("PyYAML isn't installed, so the workflow check is skipped (the plan job runs it)", file=sys.stderr)
         return
-    found = problems(yaml.safe_load(path.read_text(encoding="utf-8")))
+    workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+    found = problems(workflow) + daily_by_hand(workflow)
     for problem in found:
         print(f"{path}: {problem}", file=sys.stderr)
     if found:
         sys.exit(1)
-    print(f"{path}: the release waits for and counts every build job, and every plan output read is declared")
+    print(f"{path}: the release waits for and counts every build job, every plan output read is declared, "
+          f"and Run workflow offers {DAILY}")
 
 
 if __name__ == "__main__":
