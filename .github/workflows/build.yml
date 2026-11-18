@@ -14,7 +14,10 @@
 # builds of their last releases are released unchanged, once, each checked
 # against a SHA-256 pinned in scripts/php-repackaged.env. Run
 # it by hand (Actions › Build › Run workflow) for a new Ruby, pgvector,
-# memcached, MariaDB or PostGIS release, or to rebuild everything. libwebrtc
+# memcached, MariaDB or PostGIS release, or to rebuild everything. To start
+# the daily run without waiting for it, choose what: scheduled, which builds
+# only the PHP not released yet; what: php rebuilds every PHP version, and
+# everyone who has one downloads it again. libwebrtc
 # builds only when asked for by name (what: libwebrtc); it takes an hour or
 # two. The voice engines build only when asked for by name too (what:
 # voice-engines), after their pins change. So do the PHP extensions for
@@ -30,9 +33,9 @@ on:
   workflow_dispatch:
     inputs:
       what:
-        description: What to build
+        description: What to build (scheduled is the daily run, only the PHP not released yet)
         type: choice
-        options: [all, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis]
+        options: [all, scheduled, php, ruby, pgvector, memcached, libwebrtc, voice-engines, php-ext-windows, mariadb, postgis]
         default: all
       platform:
         description: Which runners (one platform keeps a test run off the others)
